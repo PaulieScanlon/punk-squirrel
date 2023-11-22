@@ -9,6 +9,7 @@ export const loader = async ({ request }) => {
   if (code) {
     const cookies = parse(request.headers.get('Cookie') ?? '');
     const headers = new Headers();
+    console.log(code);
 
     const supabaseClient = createServerClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
       cookies: {
