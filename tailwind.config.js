@@ -20,7 +20,7 @@ export default {
               color: theme('colors.brand.gray-4'),
             },
             'h1, h2, h3, h4, h5, h6': {
-              fontFamily: 'Mona Sans',
+              fontFamily: 'Plus Jakarta Sans',
               fontWeight: 800,
             },
             pre: {

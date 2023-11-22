@@ -1,7 +1,13 @@
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
 
 import stylesheet from './styles/tailwind.css';
-import monaSans from './styles/mona-sans.css';
+
+import plusJakartaSans200 from '@fontsource/plus-jakarta-sans/200.css';
+import plusJakartaSans300 from '@fontsource/plus-jakarta-sans/300.css';
+import plusJakartaSans400 from '@fontsource/plus-jakarta-sans/400.css';
+import plusJakartaSans500 from '@fontsource/plus-jakarta-sans/500.css';
+import plusJakartaSans700 from '@fontsource/plus-jakarta-sans/700.css';
+import plusJakartaSans800 from '@fontsource/plus-jakarta-sans/800.css';
 
 export const meta = () => [
   {
@@ -13,7 +19,12 @@ export const meta = () => [
 
 export const links = () => [
   { rel: 'stylesheet', href: stylesheet },
-  { rel: 'stylesheet', href: monaSans },
+  { rel: 'stylesheet', href: plusJakartaSans200 },
+  { rel: 'stylesheet', href: plusJakartaSans300 },
+  { rel: 'stylesheet', href: plusJakartaSans400 },
+  { rel: 'stylesheet', href: plusJakartaSans500 },
+  { rel: 'stylesheet', href: plusJakartaSans700 },
+  { rel: 'stylesheet', href: plusJakartaSans800 },
 ];
 
 export default function App() {

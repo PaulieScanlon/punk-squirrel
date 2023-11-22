@@ -10,6 +10,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@fontsource/plus-jakarta-sans": "^5.0.17",
     "@netlify/edge-functions": "^2.0.0",
     "@netlify/remix-edge-adapter": "^3.0.0",
     "@netlify/remix-runtime": "^2.0.0",

@@ -539,6 +539,11 @@
   resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-2.1.0.tgz#0709e9f4cb252351c609c6e6d8d6779a8d25edff"
   integrity sha512-+KpH+QxZU7O4675t3mnkQKcZZg56u+K/Ct2K+N2AZYNVK8kyeo/bI18tI8aPm3tvNNRyTWfj6s5tnGNlcbQRsA==
 
+"@fontsource/plus-jakarta-sans@^5.0.17":
+  version "5.0.17"
+  resolved "https://registry.yarnpkg.com/@fontsource/plus-jakarta-sans/-/plus-jakarta-sans-5.0.17.tgz#2e2a79bd8f3f5646f502ae39fdbd8209790a5045"
+  integrity sha512-A3NerN+0qNsotzuEz+slG5dvyGQXSEufzoDLz1CS5cicHzlpnjlB0xPRTZvB67lmVLEzDR1pyAbrmbNr7UzoEQ==
+
 "@isaacs/cliui@^8.0.2":
   version "8.0.2"
   resolved "https://registry.yarnpkg.com/@isaacs/cliui/-/cliui-8.0.2.tgz#b37667b7bc181c168782259bab42474fbf52b550"
