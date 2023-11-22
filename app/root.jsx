@@ -57,10 +57,15 @@ export const loader = async ({ request }) => {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
+  const {
+    data: { user },
+  } = await supabaseClient.auth.getUser();
+
   return json(
     {
       env,
       session,
+      user,
     },
     {
       headers,
@@ -69,7 +74,7 @@ export const loader = async ({ request }) => {
 };
 
 export default function App() {
-  const { env, session } = useLoaderData();
+  const { env, session, user } = useLoaderData();
 
   const authRedirect = env.SUPABASE_AUTH_REDIRECT;
 
@@ -102,8 +107,8 @@ export default function App() {
         <Links />
       </head>
       <body className='prose max-w-none bg-brand-background'>
-        <main>
-          <Outlet context={{ authRedirect, supabase, session }} />
+        <main className='min-h-screen'>
+          <Outlet context={{ authRedirect, supabase, session, user }} />
           <ScrollRestoration />
           <Scripts />
           <LiveReload />

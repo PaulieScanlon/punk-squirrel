@@ -4,7 +4,7 @@ import Logo from '../components/logo';
 const AppHeader = ({ handleNav, isNavOpen = false }) => {
   return (
     <header className='sticky top-0 z-20 w-full border-b border-b-brand-border bg-brand-surface-0'>
-      <nav className='flex p-4'>
+      <nav className='flex px-4 h-[64px]'>
         <Link className='flex items-center no-underline' to='/' aria-current='page'>
           <Logo />
         </Link>
