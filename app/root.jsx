@@ -1,7 +1,20 @@
-import { cssBundleHref } from '@remix-run/css-bundle';
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
 
-export const links = () => [...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : [])];
+import stylesheet from './styles/tailwind.css';
+import monaSans from './styles/mona-sans.css';
+
+export const meta = () => [
+  {
+    charset: 'utf-8',
+    title: 'Wayback',
+    viewport: 'width=device-width,initial-scale=1',
+  },
+];
+
+export const links = () => [
+  { rel: 'stylesheet', href: stylesheet },
+  { rel: 'stylesheet', href: monaSans },
+];
 
 export default function App() {
   return (
@@ -13,10 +26,12 @@ export default function App() {
         <Links />
       </head>
       <body>
-        <Outlet />
-        <ScrollRestoration />
-        <Scripts />
-        <LiveReload />
+        <main className='prose max-w-none w-full'>
+          <Outlet />
+          <ScrollRestoration />
+          <Scripts />
+          <LiveReload />
+        </main>
       </body>
     </html>
   );

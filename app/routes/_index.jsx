@@ -1,7 +1,7 @@
 const Page = () => {
   return (
     <main>
-      <h1>Wayback</h1>
+      <h1 className='text-3xl'>Wayback</h1>
     </main>
   );
 };

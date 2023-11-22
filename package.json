@@ -20,8 +20,9 @@
   },
   "devDependencies": {
     "@remix-run/dev": "^2.3.0",
-    "@remix-run/eslint-config": "^2.3.0",
-    "@remix-run/serve": "^2.3.0"
+    "@remix-run/serve": "^2.3.0",
+    "@tailwindcss/typography": "^0.5.10",
+    "tailwindcss": "^3.3.5"
   },
   "engines": {
     "node": ">=18"

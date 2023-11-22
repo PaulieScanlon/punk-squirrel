@@ -1005,14 +1005,14 @@ function convertRouteMatchToUiMatch(match, loaderData) {
 function flattenRoutes(routes2, branches, parentsMeta, parentPath) {
   branches === void 0 && (branches = []), parentsMeta === void 0 && (parentsMeta = []), parentPath === void 0 && (parentPath = "");
   let flattenRoute = (route, index, relativePath) => {
-    let meta = {
+    let meta2 = {
       relativePath: relativePath === void 0 ? route.path || "" : relativePath,
       caseSensitive: route.caseSensitive === !0,
       childrenIndex: index,
       route
     };
-    meta.relativePath.startsWith("/") && (invariant(meta.relativePath.startsWith(parentPath), 'Absolute route path "' + meta.relativePath + '" nested under path ' + ('"' + parentPath + '" is not valid. An absolute child route path ') + "must start with the combined path of all its parent routes."), meta.relativePath = meta.relativePath.slice(parentPath.length));
-    let path = joinPaths([parentPath, meta.relativePath]), routesMeta = parentsMeta.concat(meta);
+    meta2.relativePath.startsWith("/") && (invariant(meta2.relativePath.startsWith(parentPath), 'Absolute route path "' + meta2.relativePath + '" nested under path ' + ('"' + parentPath + '" is not valid. An absolute child route path ') + "must start with the combined path of all its parent routes."), meta2.relativePath = meta2.relativePath.slice(parentPath.length));
+    let path = joinPaths([parentPath, meta2.relativePath]), routesMeta = parentsMeta.concat(meta2);
     route.children && route.children.length > 0 && (invariant(
       // Our types know better, but runtime JS may not!
       // @ts-expect-error
@@ -1044,7 +1044,7 @@ function explodeOptionalSegments(path) {
   return result.push(...restExploded.map((subpath) => subpath === "" ? required : [required, subpath].join("/"))), isOptional && result.push(...restExploded), result.map((exploded) => path.startsWith("/") && exploded === "" ? "/" : exploded);
 }
 function rankRouteBranches(branches) {
-  branches.sort((a, b) => a.score !== b.score ? b.score - a.score : compareIndexes(a.routesMeta.map((meta) => meta.childrenIndex), b.routesMeta.map((meta) => meta.childrenIndex)));
+  branches.sort((a, b) => a.score !== b.score ? b.score - a.score : compareIndexes(a.routesMeta.map((meta2) => meta2.childrenIndex), b.routesMeta.map((meta2) => meta2.childrenIndex)));
 }
 function computeScore(path, index) {
   let segments = path.split("/"), initialScore = segments.length;
@@ -1068,15 +1068,15 @@ function matchRouteBranch(branch, pathname) {
     routesMeta
   } = branch, matchedParams = {}, matchedPathname = "/", matches = [];
   for (let i = 0; i < routesMeta.length; ++i) {
-    let meta = routesMeta[i], end = i === routesMeta.length - 1, remainingPathname = matchedPathname === "/" ? pathname : pathname.slice(matchedPathname.length) || "/", match = matchPath({
-      path: meta.relativePath,
-      caseSensitive: meta.caseSensitive,
+    let meta2 = routesMeta[i], end = i === routesMeta.length - 1, remainingPathname = matchedPathname === "/" ? pathname : pathname.slice(matchedPathname.length) || "/", match = matchPath({
+      path: meta2.relativePath,
+      caseSensitive: meta2.caseSensitive,
       end
     }, remainingPathname);
     if (!match)
       return null;
     Object.assign(matchedParams, match.params);
-    let route = meta.route;
+    let route = meta2.route;
     matches.push({
       // TODO: Can this as be avoided?
       params: matchedParams,
@@ -21813,7 +21813,7 @@ function Meta() {
     let errorIdx = routerMatches.findIndex((m) => errors[m.route.id]);
     _matches = routerMatches.slice(0, errorIdx + 1), error = errors[routerMatches[errorIdx].route.id];
   }
-  let meta = [], leafMeta = null, matches = [];
+  let meta2 = [], leafMeta = null, matches = [];
   for (let i = 0; i < _matches.length; i++) {
     let _match = _matches[i], routeId = _match.route.id, data = loaderData[routeId], params = _match.params, routeModule = routeModules[routeId], routeMeta = [], match = {
       id: routeId,
@@ -21834,9 +21834,9 @@ function Meta() {
       throw new Error("The route at " + _match.route.path + ` returns an invalid value. All route meta functions must return an array of meta objects.
 
 To reference the meta function API, see https://remix.run/route/meta`);
-    match.meta = routeMeta, matches[i] = match, meta = [...routeMeta], leafMeta = meta;
+    match.meta = routeMeta, matches[i] = match, meta2 = [...routeMeta], leafMeta = meta2;
   }
-  return /* @__PURE__ */ React3.createElement(React3.Fragment, null, meta.flat().map((metaProps) => {
+  return /* @__PURE__ */ React3.createElement(React3.Fragment, null, meta2.flat().map((metaProps) => {
     if (!metaProps)
       return null;
     if ("tagName" in metaProps) {
@@ -31414,67 +31414,89 @@ var import_remix_edge_adapter = __toESM(require_src2(), 1);
 var root_exports = {};
 __export(root_exports, {
   default: () => App,
-  links: () => links
+  links: () => links,
+  meta: () => meta
 });
 init_esm2();
-var import_jsx_dev_runtime = __toESM(require_jsx_dev_runtime(), 1), links = () => [...void 0 ? [{ rel: "stylesheet", href: void 0 }] : []];
+
+// app/styles/tailwind.css
+var tailwind_default = "/build/_assets/tailwind-3ODDCZ6Y.css";
+
+// app/styles/mona-sans.css
+var mona_sans_default = "/build/_assets/mona-sans-INM6LQMF.css";
+
+// app/root.jsx
+var import_jsx_dev_runtime = __toESM(require_jsx_dev_runtime(), 1), meta = () => [
+  {
+    charset: "utf-8",
+    title: "Wayback",
+    viewport: "width=device-width,initial-scale=1"
+  }
+], links = () => [
+  { rel: "stylesheet", href: tailwind_default },
+  { rel: "stylesheet", href: mona_sans_default }
+];
 function App() {
   return /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)("html", { lang: "en", children: [
     /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)("head", { children: [
       /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)("meta", { charSet: "utf-8" }, void 0, !1, {
         fileName: "app/root.jsx",
-        lineNumber: 10,
+        lineNumber: 23,
         columnNumber: 9
       }, this),
       /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)("meta", { name: "viewport", content: "width=device-width, initial-scale=1" }, void 0, !1, {
         fileName: "app/root.jsx",
-        lineNumber: 11,
+        lineNumber: 24,
         columnNumber: 9
       }, this),
       /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)(Meta, {}, void 0, !1, {
         fileName: "app/root.jsx",
-        lineNumber: 12,
+        lineNumber: 25,
         columnNumber: 9
       }, this),
       /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)(Links, {}, void 0, !1, {
         fileName: "app/root.jsx",
-        lineNumber: 13,
+        lineNumber: 26,
         columnNumber: 9
       }, this)
     ] }, void 0, !0, {
       fileName: "app/root.jsx",
-      lineNumber: 9,
+      lineNumber: 22,
       columnNumber: 7
     }, this),
-    /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)("body", { children: [
+    /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)("body", { children: /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)("main", { className: "prose max-w-none w-full", children: [
       /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)(Outlet, {}, void 0, !1, {
         fileName: "app/root.jsx",
-        lineNumber: 16,
-        columnNumber: 9
+        lineNumber: 30,
+        columnNumber: 11
       }, this),
       /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)(ScrollRestoration2, {}, void 0, !1, {
         fileName: "app/root.jsx",
-        lineNumber: 17,
-        columnNumber: 9
+        lineNumber: 31,
+        columnNumber: 11
       }, this),
       /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)(Scripts, {}, void 0, !1, {
         fileName: "app/root.jsx",
-        lineNumber: 18,
-        columnNumber: 9
+        lineNumber: 32,
+        columnNumber: 11
       }, this),
       /* @__PURE__ */ (0, import_jsx_dev_runtime.jsxDEV)(LiveReload, {}, void 0, !1, {
         fileName: "app/root.jsx",
-        lineNumber: 19,
-        columnNumber: 9
+        lineNumber: 33,
+        columnNumber: 11
       }, this)
     ] }, void 0, !0, {
       fileName: "app/root.jsx",
-      lineNumber: 15,
+      lineNumber: 29,
+      columnNumber: 9
+    }, this) }, void 0, !1, {
+      fileName: "app/root.jsx",
+      lineNumber: 28,
       columnNumber: 7
     }, this)
   ] }, void 0, !0, {
     fileName: "app/root.jsx",
-    lineNumber: 8,
+    lineNumber: 21,
     columnNumber: 5
   }, this);
 }
@@ -31484,7 +31506,7 @@ var index_exports = {};
 __export(index_exports, {
   default: () => index_default
 });
-var import_jsx_dev_runtime2 = __toESM(require_jsx_dev_runtime(), 1), Page = () => /* @__PURE__ */ (0, import_jsx_dev_runtime2.jsxDEV)("main", { children: /* @__PURE__ */ (0, import_jsx_dev_runtime2.jsxDEV)("h1", { children: "Wayback" }, void 0, !1, {
+var import_jsx_dev_runtime2 = __toESM(require_jsx_dev_runtime(), 1), Page = () => /* @__PURE__ */ (0, import_jsx_dev_runtime2.jsxDEV)("main", { children: /* @__PURE__ */ (0, import_jsx_dev_runtime2.jsxDEV)("h1", { className: "text-3xl", children: "Wayback" }, void 0, !1, {
   fileName: "app/routes/_index.jsx",
   lineNumber: 4,
   columnNumber: 7
@@ -31495,7 +31517,7 @@ var import_jsx_dev_runtime2 = __toESM(require_jsx_dev_runtime(), 1), Page = () =
 }, this), index_default = Page;
 
 // server-assets-manifest:@remix-run/dev/assets-manifest
-var assets_manifest_default = { entry: { module: "/build/entry.client-3VYTSOZ4.js", imports: ["/build/_shared/chunk-ZWGWGGVF.js", "/build/_shared/chunk-MCIIJO7A.js", "/build/_shared/chunk-XU7DNSPJ.js", "/build/_shared/chunk-LI2A27EQ.js", "/build/_shared/chunk-UWV35TSL.js", "/build/_shared/chunk-GIAAE3CH.js", "/build/_shared/chunk-BOXFZXVX.js", "/build/_shared/chunk-PNG5AS42.js"] }, routes: { root: { id: "root", parentId: void 0, path: "", index: void 0, caseSensitive: void 0, module: "/build/root-GTXFUDRV.js", imports: void 0, hasAction: !1, hasLoader: !1, hasErrorBoundary: !1 }, "routes/_index": { id: "routes/_index", parentId: "root", path: void 0, index: !0, caseSensitive: void 0, module: "/build/routes/_index-CFCR2NWQ.js", imports: void 0, hasAction: !1, hasLoader: !1, hasErrorBoundary: !1 } }, version: "d83f58cf", hmr: { runtime: "/build/_shared/chunk-LI2A27EQ.js", timestamp: 1700587797684 }, url: "/build/manifest-D83F58CF.js" };
+var assets_manifest_default = { entry: { module: "/build/entry.client-3VYTSOZ4.js", imports: ["/build/_shared/chunk-ZWGWGGVF.js", "/build/_shared/chunk-MCIIJO7A.js", "/build/_shared/chunk-XU7DNSPJ.js", "/build/_shared/chunk-LI2A27EQ.js", "/build/_shared/chunk-UWV35TSL.js", "/build/_shared/chunk-GIAAE3CH.js", "/build/_shared/chunk-BOXFZXVX.js", "/build/_shared/chunk-PNG5AS42.js"] }, routes: { root: { id: "root", parentId: void 0, path: "", index: void 0, caseSensitive: void 0, module: "/build/root-2JSRQB3N.js", imports: void 0, hasAction: !1, hasLoader: !1, hasErrorBoundary: !1 }, "routes/_index": { id: "routes/_index", parentId: "root", path: void 0, index: !0, caseSensitive: void 0, module: "/build/routes/_index-GNG5RZV5.js", imports: void 0, hasAction: !1, hasLoader: !1, hasErrorBoundary: !1 } }, version: "1ae4f25a", hmr: { runtime: "/build/_shared/chunk-LI2A27EQ.js", timestamp: 1700616494167 }, url: "/build/manifest-1AE4F25A.js" };
 
 // server-entry-module:@remix-run/dev/server-build
 var mode = "development", assetsBuildDirectory = "public/build", future = { v3_fetcherPersist: !1 }, publicPath = "/build/", entry = { module: entry_server_exports }, routes = {
