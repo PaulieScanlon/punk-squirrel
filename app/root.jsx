@@ -1,5 +1,18 @@
-import { useState } from 'react';
-import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import { useState, useEffect } from 'react';
+import {
+  Links,
+  LiveReload,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+  useRevalidator,
+} from '@remix-run/react';
+import { json } from '@remix-run/node';
+
+import { createServerClient, parse, serialize, createBrowserClient } from '@supabase/ssr';
+
 import stylesheet from './tailwind.css';
 
 import plusJakartaSans200 from '@fontsource/plus-jakarta-sans/200.css';
@@ -29,12 +42,70 @@ export const links = () => [
   { rel: 'stylesheet', href: plusJakartaSans800 },
 ];
 
-export default function App() {
-  const [isNavOpen, setIsNavOpen] = useState(false);
-
-  const handleNav = () => {
-    setIsNavOpen(!isNavOpen);
+export const loader = async ({ request }) => {
+  const env = {
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
+    SUPABASE_AUTH_REDIRECT: process.env.SUPABASE_AUTH_REDIRECT,
+    GITHUB_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   };
+
+  const cookies = parse(request.headers.get('Cookie') ?? '');
+  const headers = new Headers();
+
+  const supabaseClient = createServerClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    cookies: {
+      get(key) {
+        return cookies[key];
+      },
+      set(key, value, options) {
+        headers.append('Set-Cookie', serialize(key, value, options));
+      },
+      remove(key, options) {
+        headers.append('Set-Cookie', serialize(key, '', options));
+      },
+    },
+  });
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  return json(
+    {
+      env,
+      session,
+    },
+    {
+      headers,
+    }
+  );
+};
+
+export default function App() {
+  const { env, session } = useLoaderData();
+
+  const authRedirect = env.SUPABASE_AUTH_REDIRECT;
+
+  const { revalidate } = useRevalidator();
+
+  const [supabase] = useState(() => createBrowserClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY));
+
+  const serverAccessToken = session?.access_token;
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.access_token !== serverAccessToken) {
+        revalidate();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [serverAccessToken, supabase, revalidate]);
 
   return (
     <html lang='en'>
@@ -46,7 +117,7 @@ export default function App() {
       </head>
       <body className='prose max-w-none bg-brand-background'>
         <main>
-          <Outlet />
+          <Outlet context={{ authRedirect, supabase, session }} />
           <ScrollRestoration />
           <Scripts />
           <LiveReload />
