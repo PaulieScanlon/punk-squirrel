@@ -12,8 +12,10 @@ const Page = () => {
     <>
       <DefaultHeader />
       <DefaultLayout>
-        <h1>Index</h1>
-        <SignInWithGitHub authRedirect={authRedirect} supabase={supabase} session={session} />
+        <section>
+          <h1>Index</h1>
+          <SignInWithGitHub authRedirect={authRedirect} supabase={supabase} session={session} />
+        </section>
       </DefaultLayout>
     </>
   );

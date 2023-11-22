@@ -1,5 +1,5 @@
 const Logo = () => {
-  return <div className='no-underline'>Git Clips</div>;
+  return <div className='no-underline'>TBD</div>;
 };
 
 export default Logo;

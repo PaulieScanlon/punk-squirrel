@@ -13,7 +13,9 @@ const Page = () => {
     <>
       <AppHeader handleNav={handleNav} isNavOpen={isNavOpen} />
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen}>
-        <h1>Dashboard</h1>
+        <section>
+          <h1>Dashboard</h1>
+        </section>
       </AppLayout>
     </>
   );
