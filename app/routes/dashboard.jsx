@@ -1,8 +1,26 @@
 import { useEffect, useState } from 'react';
 import { useOutletContext, useSearchParams } from '@remix-run/react';
-
+import { json, redirect } from '@remix-run/node';
 import AppLayout from '../layouts/app-layout';
 import AppHeader from '../layouts/app-header';
+
+import { supabaseServer } from '../supabase.server';
+
+export const loader = async ({ request }) => {
+  const { supabaseClient, headers } = await supabaseServer(request);
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    throw redirect('/');
+  }
+
+  return json({
+    headers,
+  });
+};
 
 const Page = () => {
   const { supabase, user } = useOutletContext();
