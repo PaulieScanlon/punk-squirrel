@@ -1,7 +1,8 @@
 import { Link } from '@remix-run/react';
 import Logo from '../components/logo';
+import SignOutButton from '../components/sign-out-button';
 
-const AppLayout = ({ handleNav, isNavOpen, children }) => {
+const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
   return (
     <div className='relative'>
       <div
@@ -10,13 +11,30 @@ const AppLayout = ({ handleNav, isNavOpen, children }) => {
           isNavOpen ? 'left-0' : '-left-[12rem] lg:left-0'
         } w-[12rem] h-screen bg-brand-surface-0 overflow-auto border-r border-r-brand-border z-30 transition-all duration-300`}
       >
-        <nav className='p-4'>
+        <nav className='flex flex-col p-4 h-full'>
           <Link className='flex items-center no-underline' to='/' aria-current='page'>
             <Logo />
           </Link>
-          <ul className='list-none m-0 p-0'>
-            <li className='m-0 p-0'></li>
-          </ul>
+          <div className='flex flex-col grow'>
+            <div className='grow'>
+              <ul className='list-none m-0 p-0'>
+                <li className='m-0 p-0'></li>
+              </ul>
+            </div>
+            <hr />
+            <div className=''>
+              <ul className='list-none m-0 p-0'>
+                <li className='flex items-center gap-1 m-0 p-0'>
+                  <img
+                    alt={user.user_metadata.full_name}
+                    src={user.user_metadata.avatar_url}
+                    className='rounded-full border border-brand-border w-8 h-8 m-0'
+                  />
+                  <SignOutButton supabase={supabase} />
+                </li>
+              </ul>
+            </div>
+          </div>
         </nav>
       </div>
       <div
@@ -30,7 +48,9 @@ const AppLayout = ({ handleNav, isNavOpen, children }) => {
         onClick={handleNav}
       />
       <div
-        className={`p-4 ${isNavOpen ? 'ml-0 lg:ml-[12rem]' : 'lg:ml-[12rem]'} max-w-8xl transition-all duration-300`}
+        className={`p-4 ${
+          isNavOpen ? 'ml-0 lg:ml-[12rem]' : 'lg:ml-[12rem]'
+        } max-w-8xl h-[calc(100vh-70px)] min-h-full transition-all duration-300`}
       >
         {children}
       </div>

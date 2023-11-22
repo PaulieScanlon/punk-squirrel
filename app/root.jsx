@@ -11,7 +11,8 @@ import {
 } from '@remix-run/react';
 import { json } from '@remix-run/node';
 
-import { createServerClient, parse, serialize, createBrowserClient } from '@supabase/ssr';
+import { createBrowserClient } from '@supabase/ssr';
+import { supabaseServer } from './supabase.server';
 
 import stylesheet from './tailwind.css';
 
@@ -50,31 +51,21 @@ export const loader = async ({ request }) => {
     GITHUB_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   };
 
-  const cookies = parse(request.headers.get('Cookie') ?? '');
-  const headers = new Headers();
-
-  const supabaseClient = createServerClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-    cookies: {
-      get(key) {
-        return cookies[key];
-      },
-      set(key, value, options) {
-        headers.append('Set-Cookie', serialize(key, value, options));
-      },
-      remove(key, options) {
-        headers.append('Set-Cookie', serialize(key, '', options));
-      },
-    },
-  });
+  const { supabaseClient, headers } = await supabaseServer(request);
 
   const {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
+  const {
+    data: { user },
+  } = await supabaseClient.auth.getUser();
+
   return json(
     {
       env,
       session,
+      user,
     },
     {
       headers,
@@ -83,7 +74,7 @@ export const loader = async ({ request }) => {
 };
 
 export default function App() {
-  const { env, session } = useLoaderData();
+  const { env, session, user } = useLoaderData();
 
   const authRedirect = env.SUPABASE_AUTH_REDIRECT;
 
@@ -116,8 +107,8 @@ export default function App() {
         <Links />
       </head>
       <body className='prose max-w-none bg-brand-background'>
-        <main>
-          <Outlet context={{ authRedirect, supabase, session }} />
+        <main className='min-h-screen'>
+          <Outlet context={{ authRedirect, supabase, session, user }} />
           <ScrollRestoration />
           <Scripts />
           <LiveReload />
