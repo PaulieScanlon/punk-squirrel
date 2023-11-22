@@ -23,7 +23,7 @@ export const loader = async ({ request }) => {
 };
 
 const Page = () => {
-  const { supabase, user } = useOutletContext();
+  const { supabase, session, user } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isNavOpen, setIsNavOpen] = useState(false);
 
@@ -42,6 +42,16 @@ const Page = () => {
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <section>
           <h1>Dashboard</h1>
+          <div className='grid md:grid-cols-2 gap-2'>
+            <div>
+              <h2>Session</h2>
+              <pre>{JSON.stringify(session, null, 2)}</pre>
+            </div>
+            <div>
+              <h2>User</h2>
+              <pre>{JSON.stringify(user, null, 2)}</pre>
+            </div>
+          </div>
         </section>
       </AppLayout>
     </>
