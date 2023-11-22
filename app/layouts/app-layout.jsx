@@ -21,19 +21,23 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
                 <li className='m-0 p-0'></li>
               </ul>
             </div>
-            <hr />
-            <div className=''>
-              <ul className='list-none m-0 p-0'>
-                <li className='flex items-center gap-1 m-0 p-0'>
-                  <img
-                    alt={user.user_metadata.full_name}
-                    src={user.user_metadata.avatar_url}
-                    className='rounded-full border border-brand-border w-8 h-8 m-0'
-                  />
-                  <SignOutButton supabase={supabase} />
-                </li>
-              </ul>
-            </div>
+            {user ? (
+              <>
+                <hr />
+                <div>
+                  <ul className='list-none m-0 p-0'>
+                    <li className='flex items-center gap-1 m-0 p-0'>
+                      <img
+                        alt={user.user_metadata.full_name}
+                        src={user.user_metadata.avatar_url}
+                        className='rounded-full border border-brand-border w-8 h-8 m-0'
+                      />
+                      <SignOutButton supabase={supabase} />
+                    </li>
+                  </ul>
+                </div>
+              </>
+            ) : null}
           </div>
         </nav>
       </div>
@@ -52,7 +56,7 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
           isNavOpen ? 'ml-0 lg:ml-[12rem]' : 'lg:ml-[12rem]'
         } max-w-8xl h-[calc(100vh-70px)] min-h-full transition-all duration-300`}
       >
-        {children}
+        {user ? <> {children}</> : null}
       </div>
     </div>
   );
