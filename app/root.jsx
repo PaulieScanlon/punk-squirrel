@@ -1,6 +1,6 @@
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
 
-import stylesheet from './styles/tailwind.css';
+import stylesheet from './tailwind.css';
 
 import plusJakartaSans200 from '@fontsource/plus-jakarta-sans/200.css';
 import plusJakartaSans300 from '@fontsource/plus-jakarta-sans/300.css';
