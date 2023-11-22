@@ -1,5 +1,5 @@
+import { useState } from 'react';
 import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
-
 import stylesheet from './tailwind.css';
 
 import plusJakartaSans200 from '@fontsource/plus-jakarta-sans/200.css';
@@ -13,7 +13,7 @@ import plusJakartaSans800 from '@fontsource/plus-jakarta-sans/800.css';
 export const meta = () => [
   {
     charset: 'utf-8',
-    title: 'Wayback',
+    title: 'TBD',
     viewport: 'width=device-width,initial-scale=1',
   },
 ];
@@ -30,6 +30,12 @@ export const links = () => [
 ];
 
 export default function App() {
+  const [isNavOpen, setIsNavOpen] = useState(false);
+
+  const handleNav = () => {
+    setIsNavOpen(!isNavOpen);
+  };
+
   return (
     <html lang='en'>
       <head>
@@ -38,8 +44,8 @@ export default function App() {
         <Meta />
         <Links />
       </head>
-      <body>
-        <main className='prose max-w-none w-full'>
+      <body className='prose max-w-none bg-brand-background'>
+        <main>
           <Outlet />
           <ScrollRestoration />
           <Scripts />
