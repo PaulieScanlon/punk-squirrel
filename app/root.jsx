@@ -1,5 +1,18 @@
 import { useState } from 'react';
-import { Links, LiveReload, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import {
+  Links,
+  LiveReload,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+  useLoaderData,
+  useRevalidator,
+} from '@remix-run/react';
+// import { json } from '@remix-run/node';
+
+// import { createServerClient, parse, serialize } from '@supabase/ssr';
+
 import stylesheet from './tailwind.css';
 
 import plusJakartaSans200 from '@fontsource/plus-jakarta-sans/200.css';
@@ -30,12 +43,6 @@ export const links = () => [
 ];
 
 export default function App() {
-  const [isNavOpen, setIsNavOpen] = useState(false);
-
-  const handleNav = () => {
-    setIsNavOpen(!isNavOpen);
-  };
-
   return (
     <html lang='en'>
       <head>
