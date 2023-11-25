@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useLoaderData, useOutletContext, useSearchParams } from '@remix-run/react';
 import { json, redirect } from '@remix-run/node';
 import AppLayout from '../layouts/app-layout';
-import AppHeader from '../layouts/app-header';
 import { Octokit } from 'octokit';
 
 import { supabaseServer } from '../supabase.server';
@@ -52,7 +51,6 @@ const Page = () => {
 
   return (
     <>
-      <AppHeader handleNav={handleNav} isNavOpen={isNavOpen} />
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <section>
           <h1>Dashboard</h1>
