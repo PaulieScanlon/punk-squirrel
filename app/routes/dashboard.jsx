@@ -17,6 +17,9 @@ export const loader = async ({ request }) => {
   if (!session) {
     throw redirect('/');
   }
+  const {
+    data: [profile],
+  } = await supabaseClient.from('profile').select();
 
   const octokit = await new Octokit({ auth: session.provider_token });
 
@@ -26,13 +29,14 @@ export const loader = async ({ request }) => {
   });
 
   return json({
+    profile,
     events,
     headers,
   });
 };
 
 const Page = () => {
-  const { events } = useLoaderData();
+  const { profile, events } = useLoaderData();
   const { supabase, session, user } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -52,18 +56,25 @@ const Page = () => {
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <section>
           <h1>Dashboard</h1>
-          <h2>GitHub Username Events</h2>
-          <pre>{JSON.stringify(events.data, null, 2)}</pre>
-          <div className='grid md:grid-cols-2 gap-2'>
+
+          <div className='grid md:grid-cols-3 gap-4'>
+            <div>
+              <h2>Profile</h2>
+              <pre className='text-xx'>{JSON.stringify(profile, null, 2)}</pre>
+            </div>
             <div>
               <h2>Session</h2>
-              <pre>{JSON.stringify(session, null, 2)}</pre>
+              {/* <p>{`id: ${session.user.id}`}</p> */}
+              <pre className='text-xx'>{JSON.stringify(session, null, 2)}</pre>
             </div>
             <div>
               <h2>User</h2>
-              <pre>{JSON.stringify(user, null, 2)}</pre>
+              <pre className='text-xx'>{JSON.stringify(user, null, 2)}</pre>
             </div>
           </div>
+
+          <h2>GitHub Username Events</h2>
+          <pre>{JSON.stringify(events.data, null, 2)}</pre>
         </section>
       </AppLayout>
     </>
