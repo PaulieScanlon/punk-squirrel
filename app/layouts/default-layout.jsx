@@ -3,6 +3,24 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 import Logo from '../components/logo';
 
+const navLinks = [
+  {
+    to: '/',
+    text: 'Home',
+  },
+  {
+    to: '/about',
+    text: 'About',
+  },
+];
+
+const authLinks = [
+  {
+    to: '/app',
+    text: 'Dashboard',
+  },
+];
+
 const DefaultLayout = ({ supabase, user, children }) => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -19,16 +37,42 @@ const DefaultLayout = ({ supabase, user, children }) => {
               </Link>
             </li>
           </ul>
+          <ul className='flex grow gap-4 items-center list-none m-0 p-0'>
+            {navLinks.map((link, index) => {
+              const { to, text } = link;
+
+              return (
+                <li key={index} className='mt-2'>
+                  <Link
+                    to={to}
+                    className='no-underline px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-1'
+                  >
+                    {text}
+                  </Link>
+                </li>
+              );
+            })}
+            {user ? (
+              <>
+                {authLinks.map((link, index) => {
+                  const { to, text } = link;
+
+                  return (
+                    <li key={index} className='mt-2'>
+                      <Link
+                        to={to}
+                        className='no-underline px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-1'
+                      >
+                        {text}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </>
+            ) : null}
+          </ul>
           {user ? (
-            <ul className='flex justify-between grow gap-8 items-center list-none m-0 p-0'>
-              <li className='mt-2'>
-                <Link
-                  to='/dashboard'
-                  className='no-underline px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-1'
-                >
-                  Dashboard
-                </Link>
-              </li>
+            <ul className='flex items-center list-none m-0 p-0'>
               <li className='m-0 p-0'>
                 <DropdownMenu.Root>
                   <DropdownMenu.Trigger asChild>

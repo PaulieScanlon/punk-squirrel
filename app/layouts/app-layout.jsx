@@ -2,6 +2,17 @@ import { Link } from '@remix-run/react';
 import Logo from '../components/logo';
 import SignOutButton from '../components/sign-out-button';
 
+const sidebarLinks = [
+  {
+    to: '/app',
+    text: 'Dashboard',
+  },
+  {
+    to: '/app/account',
+    text: 'Account',
+  },
+];
+
 const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
   return (
     <>
@@ -45,9 +56,22 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
               <Logo />
             </Link>
             <div className='flex flex-col grow'>
-              <div className='grow'>
+              <div className='grow py-8'>
                 <ul className='list-none m-0 p-0'>
-                  <li className='m-0 p-0'></li>
+                  {sidebarLinks.map((link, index) => {
+                    const { to, text } = link;
+
+                    return (
+                      <li key={index} className='mt-2'>
+                        <Link
+                          to={to}
+                          className='no-underline px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-2'
+                        >
+                          {text}
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
               {user ? (

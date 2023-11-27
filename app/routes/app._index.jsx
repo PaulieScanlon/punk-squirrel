@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useLoaderData, useOutletContext, useSearchParams } from '@remix-run/react';
 import { json, redirect } from '@remix-run/node';
-import AppLayout from '../layouts/app-layout';
 import { Octokit } from 'octokit';
 
 import { supabaseServer } from '../supabase.server';
+
+import AppLayout from '../layouts/app-layout';
 
 export const loader = async ({ request }) => {
   const { supabaseClient, headers } = await supabaseServer(request);
@@ -16,9 +17,6 @@ export const loader = async ({ request }) => {
   if (!session) {
     throw redirect('/');
   }
-  const {
-    data: [profile],
-  } = await supabaseClient.from('profile').select();
 
   const octokit = await new Octokit({ auth: session.provider_token });
 
@@ -28,14 +26,13 @@ export const loader = async ({ request }) => {
   });
 
   return json({
-    profile,
     events,
     headers,
   });
 };
 
 const Page = () => {
-  const { profile, events } = useLoaderData();
+  const { events } = useLoaderData();
   const { supabase, session, user } = useOutletContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isNavOpen, setIsNavOpen] = useState(false);
@@ -55,11 +52,7 @@ const Page = () => {
         <section>
           <h1>Dashboard</h1>
 
-          <div className='grid md:grid-cols-3 gap-4'>
-            <div>
-              <h2>Profile</h2>
-              <pre className='text-xx'>{JSON.stringify(profile, null, 2)}</pre>
-            </div>
+          <div className='grid md:grid-cols-2 gap-4'>
             <div>
               <h2>Session</h2>
               {/* <p>{`id: ${session.user.id}`}</p> */}

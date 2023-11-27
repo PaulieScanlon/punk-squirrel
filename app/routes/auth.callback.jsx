@@ -4,7 +4,7 @@ import { createServerClient, parse, serialize } from '@supabase/ssr';
 export const loader = async ({ request }) => {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
-  const next = requestUrl.searchParams.get('next') || '/dashboard';
+  const next = requestUrl.searchParams.get('next') || '/app';
 
   if (code) {
     const cookies = parse(request.headers.get('Cookie') ?? '');
