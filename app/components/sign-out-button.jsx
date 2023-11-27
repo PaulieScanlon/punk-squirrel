@@ -7,9 +7,9 @@ const SignOutButton = ({ supabase }) => {
   return (
     <button
       onClick={handleSignOut}
-      className='flex grow text-sm px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-2'
+      className='flex grow text-sm text-brand-mid-gray px-3 py-2 rounded transition-colors duration-300 hover:text-brand-text hover:bg-brand-surface-2'
     >
-      <span className='font-medium'>Sign out</span>
+      <span className='text-inherit'>Sign out</span>
     </button>
   );
 };

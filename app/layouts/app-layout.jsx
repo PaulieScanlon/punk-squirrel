@@ -2,11 +2,18 @@ import { Link } from '@remix-run/react';
 import Logo from '../components/logo';
 import SignOutButton from '../components/sign-out-button';
 
-const sidebarLinks = [
+const appLinks = [
   {
     to: '/app',
     text: 'Dashboard',
   },
+  {
+    to: '/app/issues',
+    text: 'Issues',
+  },
+];
+
+const accountLinks = [
   {
     to: '/app/account',
     text: 'Account',
@@ -55,25 +62,39 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
             <Link className='flex items-center no-underline' to='/' aria-current='page'>
               <Logo />
             </Link>
-            <div className='flex flex-col grow'>
-              <div className='grow py-8'>
-                <ul className='list-none m-0 p-0'>
-                  {sidebarLinks.map((link, index) => {
-                    const { to, text } = link;
+            <div className='flex flex-col grow pt-8'>
+              <ul className='list-none m-0 p-0 grow'>
+                {appLinks.map((link, index) => {
+                  const { to, text } = link;
 
-                    return (
-                      <li key={index} className='mt-2'>
-                        <Link
-                          to={to}
-                          className='no-underline px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-2'
-                        >
-                          {text}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+                  return (
+                    <li key={index} className='p-0 m-0'>
+                      <Link
+                        to={to}
+                        className='flex no-underline px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-2'
+                      >
+                        {text}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+              <ul className='list-none m-0 p-0'>
+                {accountLinks.map((link, index) => {
+                  const { to, text } = link;
+
+                  return (
+                    <li key={index} className='p-0 m-0'>
+                      <Link
+                        to={to}
+                        className='flex no-underline text-sm text-brand-mid-gray px-3 py-2 rounded transition-colors duration-300 hover:text-brand-text hover:bg-brand-surface-2'
+                      >
+                        {text}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
               {user ? (
                 <>
                   <hr />
