@@ -18,7 +18,7 @@ export const loader = async ({ request }) => {
     throw redirect('/');
   }
 
-  const octokit = await new Octokit({ auth: session.provider_token });
+  const octokit = await new Octokit();
 
   const events = await octokit.request('GET /users/{username}/events/public', {
     username: session.user.user_metadata.user_name,
@@ -51,12 +51,13 @@ const Page = () => {
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <section>
           <h1>Dashboard</h1>
+          {/* <pre className='text-xx'>{JSON.stringify(session, null, 2)}</pre> */}
 
           <div className='grid md:grid-cols-2 gap-4'>
             <div>
               <h2>Session</h2>
-              {/* <p>{`id: ${session.user.id}`}</p> */}
               <pre className='text-xx'>{JSON.stringify(session, null, 2)}</pre>
+              {/* <p>{`id: ${session.user.id}`}</p> */}
             </div>
             <div>
               <h2>User</h2>
