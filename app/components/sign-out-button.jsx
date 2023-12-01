@@ -1,6 +1,5 @@
 const SignOutButton = ({ supabase }) => {
   const handleSignOut = async () => {
-    console.log('handleSignOut');
     await supabase.auth.signOut();
   };
 

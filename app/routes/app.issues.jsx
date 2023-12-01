@@ -63,18 +63,20 @@ export const action = async ({ request }) => {
   const maxValue = findMaxValue(updatedDefaultDates, 'count');
   const chartWidth = 1920;
   const chartHeight = 1080;
-  const offsetY = 150;
-  const paddingX = 140;
-  const paddingY = 300;
+  const offsetY = 200;
+  const _chartHeight = chartHeight - offsetY;
+  const paddingX = 180;
+  const paddingY = 320;
   const guides = [...Array(8).keys()];
 
   const createProperties = (array) => {
     return array.map((entry, index) => {
       const { count } = entry;
 
-      const ratio = index / (array.length - 1);
-      const x = ratio * (chartWidth - paddingX) + paddingX / 2;
-      const y = chartHeight - offsetY - (count / maxValue) * (chartHeight - (paddingY + offsetY));
+      const x_ratio = index / (array.length - 1);
+      const y_ratio = count / maxValue;
+      const x = x_ratio * (chartWidth - paddingX) + paddingX / 2;
+      const y = _chartHeight - y_ratio * (_chartHeight - paddingY);
 
       return {
         count,
@@ -99,37 +101,54 @@ export const action = async ({ request }) => {
       return `${x},${y}`;
     });
 
-    // first x
-    // chartHeight - offsetY
-    const starValues = [dataArray[0].split(',')[0], chartHeight - offsetY];
-
-    // last x
-    // chartHeight - offsetY
-    const endValues = [dataArray[dataArray.length - 1].split(',')[0], chartHeight - offsetY];
+    // first x, chartHeight - offsetY
+    const starValues = [dataArray[0].split(',')[0], _chartHeight];
+    // last x, chartHeight + paddingY * 2
+    const endValues = [dataArray[dataArray.length - 1].split(',')[0], _chartHeight];
 
     return [starValues, dataArray, endValues].toString();
   };
 
+  const ticks = firstSegment.map((_, index) => {
+    const x = (index / firstSegment.length) * chartWidth + paddingX / 2;
+
+    const from = formatDate(firstSegment[index].date, false);
+    const to = formatDate(secondSegment[index].date, false);
+
+    return {
+      from: from,
+      to: to,
+      x: x,
+    };
+  });
+
   return json({
     title: 'issues',
-    owner: owner,
-    repo: repo,
-    state: state === 'open' ? 'opened' : 'closed',
+    owner,
+    repo,
+    state,
     dates: {
       from: dateFrom,
       to: dateNow,
     },
+    maxValue,
+    ticks,
     config: {
       chartWidth,
       chartHeight,
+      _chartHeight,
       offsetY,
       paddingX,
       paddingY,
       guides,
+      color: state === 'open' ? '#3fb950' : '#f85149',
     },
-    maxValue,
     insideSevenDays: {
       total: findTotalValue(firstSegment, 'count'),
+      dates: {
+        from: firstSegment[0].date,
+        to: firstSegment.pop().date,
+      },
       properties: createProperties(firstSegment),
       points: createPoints(createProperties(firstSegment)),
       fills: createFills(createProperties(firstSegment)),
@@ -137,6 +156,10 @@ export const action = async ({ request }) => {
     },
     outsideSevenDays: {
       total: findTotalValue(secondSegment, 'count'),
+      dates: {
+        from: secondSegment[0].date,
+        to: secondSegment.pop().date,
+      },
       properties: createProperties(secondSegment),
       points: createPoints(createProperties(secondSegment)),
       fills: createFills(createProperties(secondSegment)),
@@ -157,7 +180,10 @@ const Page = () => {
   const dateFrom = formatDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
   const dateNow = formatDate(new Date());
 
-  // console.log(data);
+  if (data) {
+    // console.log(data);
+    // console.log(data.outsideSevenDays.dates.from, data.outsideSevenDays.dates.to);
+  }
 
   return (
     <>
@@ -211,17 +237,14 @@ const Page = () => {
                 <>
                   {data.config.guides.map((_, index) => {
                     const ratio = index / data.config.guides.length;
-
-                    const offsetHeight = data.config.chartHeight - data.config.paddingY;
-
-                    const y = offsetHeight - offsetHeight * ratio + data.config.offsetY;
+                    const y = (data.config._chartHeight - data.config.paddingY) * ratio;
 
                     return (
                       <polyline
                         key={index}
-                        points={`${data.config.paddingX / 2},${y} ${
+                        points={`${data.config.paddingX / 2},${y + data.config.paddingY}, ${
                           data.config.chartWidth - data.config.paddingX / 2
-                        },${y}`}
+                        }, ${y + data.config.paddingY}`}
                         style={{
                           fill: 'none',
                           strokeWidth: 1,
@@ -232,9 +255,38 @@ const Page = () => {
                   })}
 
                   <g>
+                    <rect
+                      x={data.config.paddingX / 2}
+                      y={85}
+                      width={120}
+                      height={40}
+                      rx={18}
+                      ry={18}
+                      style={{
+                        fill: data.config.color,
+                        fillOpacity: 0.2,
+                        strokeWidth: 2,
+                        stroke: data.config.color,
+                      }}
+                    />
                     <text
-                      x={70}
-                      y={120}
+                      x={149}
+                      y={113}
+                      textAnchor='middle'
+                      style={{
+                        fill: data.config.color,
+                        fontSize: '1.4rem',
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontWeight: 600,
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      {data.state}
+                    </text>
+
+                    <text
+                      x={data.config.paddingX / 2}
+                      y={202}
                       style={{
                         fill: '#f0f6fc',
                         fontSize: '4rem',
@@ -246,8 +298,8 @@ const Page = () => {
                       {data.title}
                     </text>
                     <text
-                      x={70}
-                      y={170}
+                      x={data.config.paddingX / 2}
+                      y={250}
                       style={{
                         fill: '#c9d1d9',
                         fontSize: '1.8rem',
@@ -258,140 +310,175 @@ const Page = () => {
                     >
                       {data.owner} • {data.repo}
                     </text>
-                    <circle
-                      cx={1840}
-                      cy={160.5}
-                      r={10}
-                      style={{
-                        fill: data.state === 'opened' ? '#238636' : '#f85149',
-                      }}
-                    />
+                  </g>
+
+                  <g>
                     <text
-                      x={1810}
-                      y={170}
+                      x={data.config.chartWidth - data.config.paddingX / 2}
+                      y={250}
                       textAnchor='end'
                       style={{
-                        fill: data.state === 'opened' ? '#238636' : '#f85149',
-                        fontSize: '1.6rem',
+                        fill: '#c9d1d9',
+                        fontSize: '2rem',
                         fontFamily: 'Plus Jakarta Sans',
                         fontWeight: 600,
-                        textTransform: 'capitalize',
                       }}
                     >
-                      {data.state}
+                      {data.outsideSevenDays.dates.from} • {data.outsideSevenDays.dates.to} •{' '}
+                      {`x${data.outsideSevenDays.total}`}
                     </text>
                   </g>
 
-                  <polyline
-                    points={data.outsideSevenDays.fills}
-                    style={{
-                      fill: '#30363d',
-                      fillOpacity: 0.1,
-                      stroke: 'none',
-                    }}
-                  />
+                  <g>
+                    <polyline
+                      points={data.outsideSevenDays.fills}
+                      style={{
+                        fill: '#464d55',
+                        fillOpacity: 0.1,
+                        stroke: 'none',
+                      }}
+                    />
 
-                  <polyline
-                    points={data.outsideSevenDays.points}
-                    style={{
-                      fill: 'none',
-                      strokeWidth: 4,
-                      stroke: '#30363d',
-                      strokeDasharray: 20,
-                    }}
-                  />
+                    <polyline
+                      points={data.outsideSevenDays.points}
+                      style={{
+                        fill: 'none',
+                        strokeWidth: 4,
+                        stroke: '#464d55',
+                        strokeDasharray: 20,
+                      }}
+                    />
 
-                  {data.outsideSevenDays.properties.map((property, index) => {
-                    const { x, y } = property;
-                    return (
-                      <g key={index}>
-                        <circle
-                          cx={x}
-                          cy={y}
-                          r={14}
-                          style={{
-                            fill: '#0d1117',
-                            strokeWidth: 4,
-                            stroke: '#30363d',
-                          }}
-                        />
-                      </g>
-                    );
-                  })}
+                    {data.outsideSevenDays.properties.map((property, index) => {
+                      const { x, y } = property;
+                      return (
+                        <g key={index}>
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r={14}
+                            style={{
+                              fill: '#0d1117',
+                              strokeWidth: 4,
+                              stroke: '#464d55',
+                            }}
+                          />
+                        </g>
+                      );
+                    })}
 
-                  <polyline
-                    points={data.insideSevenDays.fills}
-                    style={{
-                      fill: '#ffd33d',
-                      fillOpacity: 0.1,
-                      stroke: 'none',
-                    }}
-                  />
+                    <polyline
+                      points={data.insideSevenDays.fills}
+                      style={{
+                        fill: data.config.color,
+                        fillOpacity: 0.1,
+                        stroke: 'none',
+                      }}
+                    />
 
-                  <polyline
-                    points={data.insideSevenDays.points}
-                    style={{
-                      fill: 'none',
-                      strokeWidth: 3,
-                      stroke: '#ffd33d',
-                    }}
-                  />
+                    <polyline
+                      points={data.insideSevenDays.points}
+                      style={{
+                        fill: 'none',
+                        strokeWidth: 3,
+                        stroke: data.config.color,
+                      }}
+                    />
 
-                  {data.outsideSevenDays.properties.map((property, index) => {
-                    const { count, x, y } = property;
-                    return (
-                      <g key={index}>
-                        {count > 0 ? (
+                    {data.outsideSevenDays.properties.map((property, index) => {
+                      const { count, x, y } = property;
+                      return (
+                        <g key={index}>
+                          {count > 0 ? (
+                            <text
+                              x={x}
+                              y={y + 47}
+                              textAnchor='middle'
+                              style={{
+                                fill: '#464d55',
+                                fontSize: '1.6rem',
+                                fontFamily: 'Plus Jakarta Sans',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {`x${count}`}
+                            </text>
+                          ) : null}
+                        </g>
+                      );
+                    })}
+
+                    {data.insideSevenDays.properties.map((property, index) => {
+                      const { count, x, y } = property;
+                      return (
+                        <g key={index}>
+                          <circle
+                            cx={x}
+                            cy={y}
+                            r={14}
+                            style={{
+                              fill: '#0d1117',
+                              strokeWidth: 4,
+                              stroke: data.config.color,
+                            }}
+                          />
+                          {count > 0 ? (
+                            <text
+                              x={x}
+                              y={y - 25}
+                              textAnchor='middle'
+                              style={{
+                                fill: data.config.color,
+                                fontSize: '1.6rem',
+                                fontFamily: 'Plus Jakarta Sans',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {`x${count}`}
+                            </text>
+                          ) : null}
+                        </g>
+                      );
+                    })}
+
+                    {data.ticks.map((tick) => {
+                      const { from, to, x } = tick;
+                      const y = data.config._chartHeight + 45;
+
+                      return (
+                        <g>
                           <text
-                            x={x}
-                            y={y + 45}
-                            textAnchor='middle'
+                            x={x + 20}
+                            y={y}
                             style={{
                               fill: '#464d55',
-                              fontSize: '1.6rem',
+                              fontSize: '1.2rem',
                               fontFamily: 'Plus Jakarta Sans',
                               fontWeight: 600,
+                              transform: 'rotate(45deg)',
+                              transformBox: 'content-box',
                             }}
                           >
-                            {`x${count}`}
+                            {from}
                           </text>
-                        ) : null}
-                      </g>
-                    );
-                  })}
-
-                  {data.insideSevenDays.properties.map((property, index) => {
-                    const { count, x, y } = property;
-                    return (
-                      <g key={index}>
-                        <circle
-                          cx={x}
-                          cy={y}
-                          r={14}
-                          style={{
-                            fill: '#0d1117',
-                            strokeWidth: 4,
-                            stroke: '#ffd33d',
-                          }}
-                        />
-                        {count > 0 ? (
                           <text
-                            x={x}
-                            y={y - 25}
-                            textAnchor='middle'
+                            x={x + 60}
+                            y={y}
                             style={{
-                              fill: '#ffd33d',
-                              fontSize: '1.6rem',
+                              fill: data.config.color,
+                              fontSize: '1.2rem',
                               fontFamily: 'Plus Jakarta Sans',
                               fontWeight: 600,
+                              transform: 'rotate(45deg)',
+                              transformBox: 'content-box',
                             }}
                           >
-                            {`x${count}`}
+                            {to}
                           </text>
-                        ) : null}
-                      </g>
-                    );
-                  })}
+                        </g>
+                      );
+                    })}
+                  </g>
                 </>
               ) : null}
             </svg>

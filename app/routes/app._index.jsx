@@ -18,7 +18,9 @@ export const loader = async ({ request }) => {
     throw redirect('/');
   }
 
-  const octokit = await new Octokit();
+  const octokit = await new Octokit({
+    auth: session.provider_token,
+  });
 
   const events = await octokit.request('GET /users/{username}/events/public', {
     username: session.user.user_metadata.user_name,
