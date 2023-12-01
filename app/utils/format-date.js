@@ -1,9 +1,9 @@
-export const formatDate = (date, showYear = true) => {
+export const formatDate = (date) => {
   return new Date(date).toLocaleString('en-US', {
     timeZone: 'UTC',
     weekday: 'short',
     day: 'numeric',
     month: 'short',
-    year: showYear ? 'numeric' : undefined,
+    year: 'numeric',
   });
 };

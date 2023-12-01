@@ -1,17 +1,12 @@
 import { formatDate } from './format-date';
 
 export const updateDateCount = (sourceDates, defaultDates) => {
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-  //   const isDateInside7Days = (date) => new Date(date) >= sevenDaysAgo;
-
-  //   const datesInside7Days = defaultDates.filter(({ date }) => isDateInside7Days(date));
-  //   const datesOutside7Days = defaultDates.filter(({ date }) => !isDateInside7Days(date));
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - defaultDates.length);
 
   const sourceDateFormatted = (date) => formatDate(new Date(date.updated_at));
 
-  const updatedDefaultDates = sourceDates.reduce(
+  const dateRange = sourceDates.reduce(
     (acc, sourceDate) => {
       const sourceDateFormattedString = sourceDateFormatted(sourceDate);
 
@@ -26,6 +21,5 @@ export const updateDateCount = (sourceDates, defaultDates) => {
     [...defaultDates]
   );
 
-  //   return { datesInside7Days, datesOutside7Days, updatedDefaultDates };
-  return { updatedDefaultDates };
+  return { dateRange };
 };

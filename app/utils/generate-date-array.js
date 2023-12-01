@@ -1,13 +1,13 @@
 import { formatDate } from './format-date';
 
-export const generateDateArray = () => {
+export const generateDateArray = (quantity) => {
   const currentDate = new Date();
-  const fourteenDaysAgo = new Date(currentDate);
-  fourteenDaysAgo.setDate(currentDate.getDate() - 14);
+  const daysAgo = new Date(currentDate);
+  daysAgo.setDate(currentDate.getDate() - quantity);
 
-  const dateArray = Array.from({ length: 14 }, (_, index) => {
-    const date = new Date(fourteenDaysAgo);
-    date.setDate(fourteenDaysAgo.getDate() + index);
+  const dateArray = Array.from({ length: quantity }, (_, index) => {
+    const date = new Date(daysAgo);
+    date.setDate(daysAgo.getDate() + index);
     return { date: formatDate(date), count: 0 };
   });
 

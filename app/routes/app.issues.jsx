@@ -11,6 +11,7 @@ import { supabaseServer } from '../supabase.server';
 import { generateDateArray } from '../utils/generate-date-array';
 import { updateDateCount } from '../utils/update-date-count';
 import { formatDate } from '../utils/format-date';
+import { formatTick } from '../utils/format-tick';
 import { findMaxValue } from '../utils/find-max-value';
 import { findTotalValue } from '../utils/find-total-value';
 
@@ -40,6 +41,7 @@ export const action = async ({ request }) => {
   const state = body.get('state');
   const dateFrom = body.get('dateFrom');
   const dateNow = body.get('dateNow');
+  const dateDiff = Math.round((new Date(dateNow) - new Date(dateFrom)) / (1000 * 60 * 60 * 24));
 
   // https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28
   const issues = await octokit.request('GET /repos/{owner}/{repo}/issues', {
@@ -55,17 +57,15 @@ export const action = async ({ request }) => {
     },
   });
 
-  const { updatedDefaultDates } = updateDateCount(issues.data, generateDateArray());
+  const { dateRange } = updateDateCount(issues.data, generateDateArray(dateDiff));
 
-  const firstSegment = updatedDefaultDates.slice(0, 7);
-  const secondSegment = updatedDefaultDates.slice(7, 15);
-
-  const maxValue = findMaxValue(updatedDefaultDates, 'count');
+  const maxValue = findMaxValue(dateRange, 'count');
+  const total = dateRange.reduce((total, item) => total + item.count, 0);
   const chartWidth = 1920;
   const chartHeight = 1080;
-  const offsetY = 200;
+  const offsetY = 180;
   const _chartHeight = chartHeight - offsetY;
-  const paddingX = 180;
+  const paddingX = 150;
   const paddingY = 320;
   const guides = [...Array(8).keys()];
 
@@ -109,18 +109,21 @@ export const action = async ({ request }) => {
     return [starValues, dataArray, endValues].toString();
   };
 
-  const ticks = firstSegment.map((_, index) => {
-    const x = (index / firstSegment.length) * chartWidth + paddingX / 2;
+  const createTicks = (array) => {
+    return array.map((tick, index) => {
+      const { date } = tick;
 
-    const from = formatDate(firstSegment[index].date, false);
-    const to = formatDate(secondSegment[index].date, false);
+      const x_ratio = index / (array.length - 1);
+      const x = x_ratio * (chartWidth - paddingX) + paddingX / 2;
+      const y = _chartHeight;
 
-    return {
-      from: from,
-      to: to,
-      x: x,
-    };
-  });
+      return {
+        date: formatTick(date),
+        x: x + 20,
+        y: y + 45,
+      };
+    });
+  };
 
   return json({
     title: 'issues',
@@ -130,9 +133,15 @@ export const action = async ({ request }) => {
     dates: {
       from: dateFrom,
       to: dateNow,
+      diff: dateDiff,
     },
     maxValue,
-    ticks,
+    total,
+    ticks: createTicks(dateRange),
+    properties: createProperties(dateRange),
+    points: createPoints(createProperties(dateRange)),
+    fills: createFills(createProperties(dateRange)),
+    data: dateRange,
     config: {
       chartWidth,
       chartHeight,
@@ -142,28 +151,6 @@ export const action = async ({ request }) => {
       paddingY,
       guides,
       color: state === 'open' ? '#3fb950' : '#f85149',
-    },
-    insideSevenDays: {
-      total: findTotalValue(firstSegment, 'count'),
-      dates: {
-        from: firstSegment[0].date,
-        to: firstSegment.pop().date,
-      },
-      properties: createProperties(firstSegment),
-      points: createPoints(createProperties(firstSegment)),
-      fills: createFills(createProperties(firstSegment)),
-      data: firstSegment,
-    },
-    outsideSevenDays: {
-      total: findTotalValue(secondSegment, 'count'),
-      dates: {
-        from: secondSegment[0].date,
-        to: secondSegment.pop().date,
-      },
-      properties: createProperties(secondSegment),
-      points: createPoints(createProperties(secondSegment)),
-      fills: createFills(createProperties(secondSegment)),
-      data: secondSegment,
     },
   });
 };
@@ -177,11 +164,11 @@ const Page = () => {
     setIsNavOpen(!isNavOpen);
   };
 
-  const dateFrom = formatDate(new Date(Date.now() - 14 * 24 * 60 * 60 * 1000));
+  const dateFrom = formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
   const dateNow = formatDate(new Date());
 
   if (data) {
-    // console.log(data);
+    console.log(data);
     // console.log(data.outsideSevenDays.dates.from, data.outsideSevenDays.dates.to);
   }
 
@@ -191,10 +178,10 @@ const Page = () => {
         <section className='flex flex-col gap-8'>
           <div>
             <h1 className='mb-0'>Issues</h1>
-            <time className='text-sm text-brand-mid-gray font-medium'>
+            <time className='text-sm  font-medium'>
               {dateFrom} &bull; {dateNow}{' '}
             </time>
-            <small>(14 Days)</small>
+            <small className='text-brand-mid-gray'>{data ? `(${data.dates.diff} days)` : ''}</small>
           </div>
           <Form method='post' className='flex flex-col md:flex-row items-start md:items-end gap-4'>
             <input hidden name='dateFrom' defaultValue={dateFrom} />
@@ -257,7 +244,7 @@ const Page = () => {
                   <g>
                     <rect
                       x={data.config.paddingX / 2}
-                      y={85}
+                      y={75}
                       width={120}
                       height={40}
                       rx={18}
@@ -270,8 +257,8 @@ const Page = () => {
                       }}
                     />
                     <text
-                      x={149}
-                      y={113}
+                      x={data.config.paddingX / 2 + 59}
+                      y={103}
                       textAnchor='middle'
                       style={{
                         fill: data.config.color,
@@ -286,7 +273,7 @@ const Page = () => {
 
                     <text
                       x={data.config.paddingX / 2}
-                      y={202}
+                      y={190}
                       style={{
                         fill: '#f0f6fc',
                         fontSize: '4rem',
@@ -299,7 +286,7 @@ const Page = () => {
                     </text>
                     <text
                       x={data.config.paddingX / 2}
-                      y={250}
+                      y={238}
                       style={{
                         fill: '#c9d1d9',
                         fontSize: '1.8rem',
@@ -310,65 +297,53 @@ const Page = () => {
                     >
                       {data.owner} • {data.repo}
                     </text>
-                  </g>
 
-                  <g>
                     <text
                       x={data.config.chartWidth - data.config.paddingX / 2}
-                      y={250}
+                      y={188}
                       textAnchor='end'
                       style={{
                         fill: '#c9d1d9',
-                        fontSize: '2rem',
+                        fontSize: '9rem',
                         fontFamily: 'Plus Jakarta Sans',
-                        fontWeight: 600,
+                        fontWeight: 900,
                       }}
                     >
-                      {data.outsideSevenDays.dates.from} • {data.outsideSevenDays.dates.to} •{' '}
-                      {`x${data.outsideSevenDays.total}`}
+                      {data.total}
+                    </text>
+                    <text
+                      x={data.config.chartWidth - data.config.paddingX / 2 - 140}
+                      y={238}
+                      textAnchor='end'
+                      style={{
+                        fill: '#c9d1d9',
+                        fontSize: '1.8rem',
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontWeight: 600,
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      {data.dates.from} • {data.dates.to}
+                    </text>
+                    <text
+                      x={data.config.chartWidth - data.config.paddingX / 2}
+                      y={238}
+                      textAnchor='end'
+                      style={{
+                        fill: '#7d8590',
+                        fontSize: '1.8rem',
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontWeight: 400,
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      {`(${data.dates.diff} days)`}
                     </text>
                   </g>
 
                   <g>
                     <polyline
-                      points={data.outsideSevenDays.fills}
-                      style={{
-                        fill: '#464d55',
-                        fillOpacity: 0.1,
-                        stroke: 'none',
-                      }}
-                    />
-
-                    <polyline
-                      points={data.outsideSevenDays.points}
-                      style={{
-                        fill: 'none',
-                        strokeWidth: 4,
-                        stroke: '#464d55',
-                        strokeDasharray: 20,
-                      }}
-                    />
-
-                    {data.outsideSevenDays.properties.map((property, index) => {
-                      const { x, y } = property;
-                      return (
-                        <g key={index}>
-                          <circle
-                            cx={x}
-                            cy={y}
-                            r={14}
-                            style={{
-                              fill: '#0d1117',
-                              strokeWidth: 4,
-                              stroke: '#464d55',
-                            }}
-                          />
-                        </g>
-                      );
-                    })}
-
-                    <polyline
-                      points={data.insideSevenDays.fills}
+                      points={data.fills}
                       style={{
                         fill: data.config.color,
                         fillOpacity: 0.1,
@@ -377,7 +352,7 @@ const Page = () => {
                     />
 
                     <polyline
-                      points={data.insideSevenDays.points}
+                      points={data.points}
                       style={{
                         fill: 'none',
                         strokeWidth: 3,
@@ -385,97 +360,60 @@ const Page = () => {
                       }}
                     />
 
-                    {data.outsideSevenDays.properties.map((property, index) => {
-                      const { count, x, y } = property;
+                    {data.properties.map((property, index) => {
+                      const { x, y, count } = property;
                       return (
                         <g key={index}>
                           {count > 0 ? (
-                            <text
-                              x={x}
-                              y={y + 47}
-                              textAnchor='middle'
-                              style={{
-                                fill: '#464d55',
-                                fontSize: '1.6rem',
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontWeight: 600,
-                              }}
-                            >
-                              {`x${count}`}
-                            </text>
-                          ) : null}
-                        </g>
-                      );
-                    })}
-
-                    {data.insideSevenDays.properties.map((property, index) => {
-                      const { count, x, y } = property;
-                      return (
-                        <g key={index}>
-                          <circle
-                            cx={x}
-                            cy={y}
-                            r={14}
-                            style={{
-                              fill: '#0d1117',
-                              strokeWidth: 4,
-                              stroke: data.config.color,
-                            }}
-                          />
-                          {count > 0 ? (
-                            <text
-                              x={x}
-                              y={y - 25}
-                              textAnchor='middle'
-                              style={{
-                                fill: data.config.color,
-                                fontSize: '1.6rem',
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontWeight: 600,
-                              }}
-                            >
-                              {`x${count}`}
-                            </text>
+                            <>
+                              <circle
+                                cx={x}
+                                cy={y - 10}
+                                r={20}
+                                style={{
+                                  fill: '#161b22',
+                                  stroke: data.config.color,
+                                  strokeWidth: 3,
+                                }}
+                              />
+                              <text
+                                x={x}
+                                y={y - 2}
+                                textAnchor='middle'
+                                style={{
+                                  fill: data.config.color,
+                                  fontSize: '1.2rem',
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {count}
+                              </text>
+                            </>
                           ) : null}
                         </g>
                       );
                     })}
 
                     {data.ticks.map((tick) => {
-                      const { from, to, x } = tick;
-                      const y = data.config._chartHeight + 45;
+                      const { date, x, y } = tick;
 
                       return (
-                        <g>
-                          <text
-                            x={x + 20}
-                            y={y}
-                            style={{
-                              fill: '#464d55',
-                              fontSize: '1.2rem',
-                              fontFamily: 'Plus Jakarta Sans',
-                              fontWeight: 600,
-                              transform: 'rotate(45deg)',
-                              transformBox: 'content-box',
-                            }}
-                          >
-                            {from}
-                          </text>
-                          <text
-                            x={x + 60}
-                            y={y}
-                            style={{
-                              fill: data.config.color,
-                              fontSize: '1.2rem',
-                              fontFamily: 'Plus Jakarta Sans',
-                              fontWeight: 600,
-                              transform: 'rotate(45deg)',
-                              transformBox: 'content-box',
-                            }}
-                          >
-                            {to}
-                          </text>
-                        </g>
+                        <text
+                          x={x}
+                          y={y}
+                          textAnchor='middle'
+                          style={{
+                            fill: '#464d55',
+                            fontSize: '1.2rem',
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: 600,
+                            transform: 'rotate(45deg)',
+                            transformBox: 'content-box',
+                          }}
+                        >
+                          {date}
+                        </text>
                       );
                     })}
                   </g>
