@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { Form, useActionData, useOutletContext, useRevalidator, useNavigation } from '@remix-run/react';
+import { Form, useActionData, useOutletContext, useNavigation } from '@remix-run/react';
 import { json, redirect } from '@remix-run/node';
 import { Octokit } from '@octokit/rest';
 import { gsap } from 'gsap';
+import * as DOMPurify from 'dompurify';
 
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { toBlobURL, fetchFile } from '@ffmpeg/util';
@@ -25,7 +26,7 @@ export const action = async ({ request }) => {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
-  if (!session) {
+  if (!session || !session.provider_token) {
     // console.log('Session: ', session);
     // console.log('Authenticated User: ', await octokit.users.getAuthenticated());
     await supabaseClient.auth.signOut();
@@ -159,23 +160,47 @@ export const action = async ({ request }) => {
   });
 };
 
+export const loader = async ({ request }) => {
+  const { supabaseClient, headers } = await supabaseServer(request);
+
+  const {
+    data: { session },
+  } = await supabaseClient.auth.getSession();
+
+  if (!session) {
+    throw redirect('/');
+  }
+
+  return json({
+    headers,
+  });
+};
+
 const Page = () => {
   // const ffmpegRef = useRef(new FFmpeg());
   const { supabase, user } = useOutletContext();
-  const { revalidate } = useRevalidator();
+
   const { state } = useNavigation();
 
   const data = useActionData();
 
+  const chartCanvasRef = useRef(null);
+  const chartSvgRef = useRef(null);
   const chartMaskRef = useRef(null);
+  const renderMessageRef = useRef(null);
 
   const [isAnimationComplete, setIsAnimationComplete] = useState(false);
+  const [animationFrames, setAnimationFrames] = useState([]);
+  const [canvasFrames, setCanvasFrames] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [ratio, setRatio] = useState(1920);
 
   const dateFrom = formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
   const dateNow = formatDate(new Date());
+
+  let tempAnimationFrames = [];
+  let tempCanvasFrames = [];
 
   useEffect(() => {
     if (data && state === 'idle') {
@@ -188,11 +213,24 @@ const Page = () => {
 
   useEffect(() => {
     const chartMask = chartMaskRef.current;
-    let tl = gsap.timeline({ onComplete: handleAnimationComplete });
+
+    let tl = gsap.timeline({
+      paused: true,
+      onUpdate: () => {
+        const svg = DOMPurify.sanitize(chartSvgRef.current);
+        const src = `data:image/svg+xml;base64;utf8,${btoa(svg)}`;
+        tempAnimationFrames.push(src);
+      },
+      onComplete: async () => {
+        setIsAnimationComplete(true);
+        setAnimationFrames(tempAnimationFrames);
+      },
+    });
     if (isLoaded) {
       const duration = 6;
       const stagger = (duration - 1) / data.points.length;
-
+      tl.seek(0);
+      tl.play();
       tl.to(chartMask, { duration: duration, width: data.config.chartWidth, ease: 'sine.out' });
       tl.to(
         '.value',
@@ -207,21 +245,66 @@ const Page = () => {
   }, [isLoaded]);
 
   const loadFFmpeg = async () => {
-    console.log('loadFFmpeg');
-
     const ffmpeg = new FFmpeg();
+    console.log(ffmpeg);
+    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/esm';
 
-    console.log('ffmpeg: ', ffmpeg);
-
-    await ffmpeg.load({
-      coreURL: await toBlobURL('/@ffmpeg/core/umd/dist/ffmpeg-core.js', 'text/javascript'),
-      wasmURL: await toBlobURL('/@ffmpeg/core/umd/dist/ffmpeg-core.wasm', 'application/wasm'),
+    ffmpeg.on('log', ({ message }) => {
+      console.log(message);
     });
 
-    // ffmpeg.on('progress', ({ progress, time }) => {
-    //   console.log(`Transcoding: ${progress}% | ${time / 1000000} s`);
-    // });
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+    });
   };
+
+  // const renderVideo = async () => {
+  //   console.log('renderVideo');
+  //   const canvas = chartCanvasRef.current;
+  //   const ctx = canvas.getContext('2d');
+
+  //   let inc = 0;
+
+  //   const createRasterizedImage = () => {
+  //     const virtualImage = new Image();
+  //     virtualImage.src = animationFrames[inc];
+
+  //     virtualImage.addEventListener('load', async () => {
+  //       renderMessageRef.current.innerHTML = `Preparing frame: ${inc} of ${animationFrames.length - 1}`;
+  //       ctx.clearRect(0, 0, data.config.chartWidth, data.config.chartHeight);
+  //       ctx.drawImage(virtualImage, 0, 0, data.config.chartWidth, data.config.chartHeight);
+  //       tempCanvasFrames.push(canvas.toDataURL('image/jpeg'));
+  //       inc++;
+  //       if (inc < animationFrames.length) {
+  //         createRasterizedImage();
+  //       } else {
+  //         console.log('onComplete');
+  //         setCanvasFrames(tempCanvasFrames);
+  //         const ffmpeg = new FFmpeg();
+  //         console.log('ffmpeg: ', ffmpeg);
+
+  //         const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/esm';
+
+  //         await ffmpeg.load({
+  //           coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+  //           wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+  //           // coreURL: await toBlobURL('/@ffmpeg/core/dist/esm/ffmpeg-core.js', 'text/javascript'),
+  //           // wasmURL: await toBlobURL('/@ffmpeg/core/dist/esm/ffmpeg-core.wasm', 'application/wasm'),
+  //         });
+  //         //   ffmpeg.on('progress', ({ progress, time }) => {
+  //         //     console.log(`Transcoding: ${progress}% | ${time / 1000000} s`);
+  //         //   });
+  //       }
+  //     });
+
+  //     virtualImage.addEventListener('error', (error) => {
+  //       console.log('virtualImage.error: ', error);
+  //     });
+  //   };
+
+  //   createRasterizedImage();
+  // };
 
   const handleRatio = (event) => {
     setIsLoaded(false);
@@ -233,18 +316,20 @@ const Page = () => {
     setIsNavOpen(!isNavOpen);
   };
 
-  const handleAnimationComplete = () => {
-    setIsAnimationComplete(true);
-  };
-
   return (
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <section className=''>
           <div className='flex mr-60'>
-            <div className={`flex flex-col gap-8 grow ${ratio === '1080' ? 'px-32' : null}`}>
+            <div className={`flex flex-col gap-4 grow ${ratio === '1080' ? 'px-32' : null}`}>
+              <canvas
+                ref={chartCanvasRef}
+                className='hidden'
+                width={isLoaded ? data.config.chartWidth : '100%'}
+                height={isLoaded ? data.config.chartHeight : 'auto'}
+              />
               <svg
-                id='svg'
+                ref={chartSvgRef}
                 xmlns='http://www.w3.org/2000/svg'
                 viewBox={`0 0 ${ratio} 1080`}
                 style={{
@@ -332,7 +417,7 @@ const Page = () => {
                           textTransform: 'capitalize',
                         }}
                       >
-                        {data.owner} • {data.repo}
+                        {data.owner} {data.repo}
                       </text>
 
                       <text
@@ -359,7 +444,7 @@ const Page = () => {
                           textTransform: 'capitalize',
                         }}
                       >
-                        {data.dates.from} • {data.dates.to}
+                        {data.dates.from} {data.dates.to}
                       </text>
                       <text
                         x={data.config.chartWidth - data.config.paddingX / 2}
@@ -487,16 +572,21 @@ const Page = () => {
                   </>
                 ) : null}
               </svg>
-              <div className='flex justify-center'>
+              <div className='flex justify-between'>
                 {data ? (
-                  <button
-                    type='button'
-                    className='inline-flex items-center px-5 py-3 rounded-md bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-sm disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
-                    onClick={loadFFmpeg}
-                    disabled={!isAnimationComplete || !isLoaded}
-                  >
-                    Render
-                  </button>
+                  <>
+                    <small ref={renderMessageRef} className='text-xs text-brand-mid-gray'></small>
+                    <div>
+                      <button
+                        type='button'
+                        className='inline-flex items-center px-3 py-2 rounded-md bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
+                        onClick={loadFFmpeg}
+                        disabled={!isAnimationComplete || !isLoaded}
+                      >
+                        Render
+                      </button>
+                    </div>
+                  </>
                 ) : null}
               </div>
             </div>

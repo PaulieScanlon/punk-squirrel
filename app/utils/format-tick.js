@@ -7,5 +7,6 @@ export const formatTick = (date) => {
     })
     .split(' ');
 
-  return `${dateFormat[0]} • ${dateFormat[1]}`;
+  // return `${dateFormat[0]} • ${dateFormat[1]}`;
+  return `${dateFormat[0]}  ${dateFormat[1]}`;
 };
