@@ -1,8 +1,11 @@
-import { useState } from 'react';
-import { Form, useActionData, useOutletContext } from '@remix-run/react';
+import { useState, useRef, useEffect } from 'react';
+import { Form, useActionData, useOutletContext, useRevalidator, useNavigation } from '@remix-run/react';
 import { json, redirect } from '@remix-run/node';
-// import { Octokit } from 'octokit';
 import { Octokit } from '@octokit/rest';
+import { gsap } from 'gsap';
+
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { toBlobURL, fetchFile } from '@ffmpeg/util';
 
 import AppLayout from '../layouts/app-layout';
 
@@ -39,6 +42,7 @@ export const action = async ({ request }) => {
   const owner = body.get('owner');
   const repo = body.get('repo');
   const state = body.get('state');
+  const ratio = body.get('ratio');
   const dateFrom = body.get('dateFrom');
   const dateNow = body.get('dateNow');
   const dateDiff = Math.round((new Date(dateNow) - new Date(dateFrom)) / (1000 * 60 * 60 * 24));
@@ -60,13 +64,13 @@ export const action = async ({ request }) => {
   const { dateRange } = updateDateCount(issues.data, generateDateArray(dateDiff));
 
   const maxValue = findMaxValue(dateRange, 'count');
-  const total = dateRange.reduce((total, item) => total + item.count, 0);
-  const chartWidth = 1920;
+  const total = findTotalValue(dateRange, 'count');
+  const chartWidth = ratio;
   const chartHeight = 1080;
-  const offsetY = 180;
+  const offsetY = 220;
   const _chartHeight = chartHeight - offsetY;
   const paddingX = 150;
-  const paddingY = 320;
+  const paddingY = 340;
   const guides = [...Array(8).keys()];
 
   const createProperties = (array) => {
@@ -87,12 +91,12 @@ export const action = async ({ request }) => {
   };
 
   const createPoints = (array) => {
-    return array
-      .map((point) => {
-        const { x, y } = point;
-        return `${x},${y}`;
-      })
-      .toString();
+    return array.map((point) => {
+      const { x, y } = point;
+      return `${x},${y}`;
+      // return { x, y };
+    });
+    // .toString();
   };
 
   const createFills = (array) => {
@@ -156,272 +160,395 @@ export const action = async ({ request }) => {
 };
 
 const Page = () => {
+  // const ffmpegRef = useRef(new FFmpeg());
   const { supabase, user } = useOutletContext();
-  const [isNavOpen, setIsNavOpen] = useState(false);
+  const { revalidate } = useRevalidator();
+  const { state } = useNavigation();
+
   const data = useActionData();
+
+  const chartMaskRef = useRef(null);
+
+  const [isAnimationComplete, setIsAnimationComplete] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
+  const [ratio, setRatio] = useState(1920);
+
+  const dateFrom = formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+  const dateNow = formatDate(new Date());
+
+  useEffect(() => {
+    if (data && state === 'idle') {
+      setIsLoaded(true);
+    } else {
+      setIsLoaded(false);
+      setIsAnimationComplete(false);
+    }
+  }, [data, state]);
+
+  useEffect(() => {
+    const chartMask = chartMaskRef.current;
+    let tl = gsap.timeline({ onComplete: handleAnimationComplete });
+    if (isLoaded) {
+      const duration = 6;
+      const stagger = (duration - 1) / data.points.length;
+
+      tl.to(chartMask, { duration: duration, width: data.config.chartWidth, ease: 'sine.out' });
+      tl.to(
+        '.value',
+        { duration: 0.3, transform: 'translateY(0px)', opacity: 1, stagger: stagger, ease: 'sine.out' },
+        '<'
+      );
+      tl.to('.date', { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: 0.16, ease: 'sine.out' }, '<');
+      tl.to('#total', { duration: 1, textContent: data.total, snap: { textContent: 1 }, ease: 'sine.out' }, '>-1');
+    } else {
+      tl.clear();
+    }
+  }, [isLoaded]);
+
+  const loadFFmpeg = async () => {
+    console.log('loadFFmpeg');
+
+    const ffmpeg = new FFmpeg();
+
+    console.log('ffmpeg: ', ffmpeg);
+
+    await ffmpeg.load({
+      coreURL: await toBlobURL('/@ffmpeg/core/umd/dist/ffmpeg-core.js', 'text/javascript'),
+      wasmURL: await toBlobURL('/@ffmpeg/core/umd/dist/ffmpeg-core.wasm', 'application/wasm'),
+    });
+
+    // ffmpeg.on('progress', ({ progress, time }) => {
+    //   console.log(`Transcoding: ${progress}% | ${time / 1000000} s`);
+    // });
+  };
+
+  const handleRatio = (event) => {
+    setIsLoaded(false);
+    setIsAnimationComplete(false);
+    setRatio(event.target.value);
+  };
 
   const handleNav = () => {
     setIsNavOpen(!isNavOpen);
   };
 
-  const dateFrom = formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-  const dateNow = formatDate(new Date());
-
-  if (data) {
-    console.log(data);
-    // console.log(data.outsideSevenDays.dates.from, data.outsideSevenDays.dates.to);
-  }
+  const handleAnimationComplete = () => {
+    setIsAnimationComplete(true);
+  };
 
   return (
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
-        <section className='flex flex-col gap-8'>
-          <div>
-            <h1 className='mb-0'>Issues</h1>
-            <time className='text-sm  font-medium'>
-              {dateFrom} &bull; {dateNow}{' '}
-            </time>
-            <small className='text-brand-mid-gray'>{data ? `(${data.dates.diff} days)` : ''}</small>
-          </div>
-          <Form method='post' className='flex flex-col md:flex-row items-start md:items-end gap-4'>
-            <input hidden name='dateFrom' defaultValue={dateFrom} />
-            <input hidden name='dateNow' defaultValue={dateNow} />
-            <div className='flex flex-col md:flex-row gap-2'>
-              <label>
-                Owner
-                <input type='text' defaultValue='remix-run' placeholder='remix-run' name='owner' />
-              </label>
-              <label>
-                Repository
-                <input type='text' defaultValue='remix' placeholder='remix' name='repo' />
-              </label>
-              <label>
-                State
-                <select name='state'>
-                  <option defaultChecked>open</option>
-                  <option>closed</option>
-                </select>
-              </label>
-            </div>
-            <button
-              type='submit'
-              className='inline-flex items-center px-3 py-2 rounded bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-xs'
-            >
-              Submit
-            </button>
-          </Form>
+        <section className=''>
+          <div className='flex mr-60'>
+            <div className={`flex flex-col gap-8 grow ${ratio === '1080' ? 'px-32' : null}`}>
+              <svg
+                id='svg'
+                xmlns='http://www.w3.org/2000/svg'
+                viewBox={`0 0 ${ratio} 1080`}
+                style={{
+                  background: '#0d1117',
+                }}
+              >
+                {isLoaded ? (
+                  <>
+                    <defs>
+                      <clipPath id='clip-mask'>
+                        <rect ref={chartMaskRef} x='0' y='0' width={0} height={data.config.chartHeight} />
+                      </clipPath>
+                    </defs>
 
-          <div className='md:w-9/12'>
-            <svg
-              id='svg'
-              xmlns='http://www.w3.org/2000/svg'
-              viewBox='0 0 1920 1080'
-              style={{
-                background: '#0d1117',
-              }}
-            >
-              {data ? (
-                <>
-                  {data.config.guides.map((_, index) => {
-                    const ratio = index / data.config.guides.length;
-                    const y = (data.config._chartHeight - data.config.paddingY) * ratio;
+                    {data.config.guides.map((_, index) => {
+                      const ratio = index / data.config.guides.length;
+                      const y = (data.config._chartHeight - data.config.paddingY) * ratio;
 
-                    return (
-                      <polyline
-                        key={index}
-                        points={`${data.config.paddingX / 2},${y + data.config.paddingY}, ${
-                          data.config.chartWidth - data.config.paddingX / 2
-                        }, ${y + data.config.paddingY}`}
+                      return (
+                        <polyline
+                          key={index}
+                          points={`${data.config.paddingX / 2},${y + data.config.paddingY}, ${
+                            data.config.chartWidth - data.config.paddingX / 2
+                          }, ${y + data.config.paddingY}`}
+                          style={{
+                            fill: 'none',
+                            strokeWidth: 1,
+                            stroke: '#272e36',
+                          }}
+                        />
+                      );
+                    })}
+
+                    <g>
+                      <rect
+                        x={data.config.paddingX / 2}
+                        y={75}
+                        width={120}
+                        height={40}
+                        rx={18}
+                        ry={18}
                         style={{
-                          fill: 'none',
-                          strokeWidth: 1,
-                          stroke: '#272e36',
+                          fill: data.config.color,
+                          fillOpacity: 0.2,
+                          strokeWidth: 2,
+                          stroke: data.config.color,
                         }}
                       />
-                    );
-                  })}
+                      <text
+                        x={data.config.paddingX / 2 + 59}
+                        y={103}
+                        textAnchor='middle'
+                        style={{
+                          fill: data.config.color,
+                          fontSize: '1.4rem',
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontWeight: 600,
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {data.state}
+                      </text>
 
-                  <g>
-                    <rect
-                      x={data.config.paddingX / 2}
-                      y={75}
-                      width={120}
-                      height={40}
-                      rx={18}
-                      ry={18}
-                      style={{
-                        fill: data.config.color,
-                        fillOpacity: 0.2,
-                        strokeWidth: 2,
-                        stroke: data.config.color,
-                      }}
-                    />
+                      <text
+                        x={data.config.paddingX / 2}
+                        y={190}
+                        style={{
+                          fill: '#f0f6fc',
+                          fontSize: '4rem',
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontWeight: 700,
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {data.title}
+                      </text>
+                      <text
+                        x={data.config.paddingX / 2}
+                        y={238}
+                        style={{
+                          fill: '#c9d1d9',
+                          fontSize: '1.8rem',
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontWeight: 400,
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {data.owner} • {data.repo}
+                      </text>
+
+                      <text
+                        id='total'
+                        x={data.config.chartWidth - data.config.paddingX / 2}
+                        y={188}
+                        textAnchor='end'
+                        style={{
+                          fill: '#c9d1d9',
+                          fontSize: '9rem',
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontWeight: 900,
+                        }}
+                      ></text>
+                      <text
+                        x={data.config.chartWidth - data.config.paddingX / 2 - 140}
+                        y={238}
+                        textAnchor='end'
+                        style={{
+                          fill: '#c9d1d9',
+                          fontSize: '1.8rem',
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontWeight: 600,
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {data.dates.from} • {data.dates.to}
+                      </text>
+                      <text
+                        x={data.config.chartWidth - data.config.paddingX / 2}
+                        y={238}
+                        textAnchor='end'
+                        style={{
+                          fill: '#7d8590',
+                          fontSize: '1.8rem',
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontWeight: 400,
+                          textTransform: 'capitalize',
+                        }}
+                      >
+                        {`(${data.dates.diff} days)`}
+                      </text>
+                    </g>
+
+                    <g>
+                      <polyline
+                        clipPath='url(#clip-mask)'
+                        points={data.fills}
+                        style={{
+                          fill: data.config.color,
+                          fillOpacity: 0.1,
+                          stroke: 'none',
+                        }}
+                      />
+
+                      <polyline
+                        clipPath='url(#clip-mask)'
+                        points={data.points}
+                        style={{
+                          fill: 'none',
+                          strokeWidth: 3,
+                          stroke: data.config.color,
+                        }}
+                      />
+
+                      {data.properties.map((property, index) => {
+                        const { x, y, count } = property;
+                        return (
+                          <g
+                            key={index}
+                            className='value'
+                            style={{
+                              opacity: 0,
+                              transform: 'translateY(20px)',
+                            }}
+                          >
+                            {count > 0 ? (
+                              <>
+                                <circle
+                                  cx={x}
+                                  cy={y - 10}
+                                  r={20}
+                                  style={{
+                                    fill: '#161b22',
+                                    stroke: data.config.color,
+                                    strokeWidth: 3,
+                                  }}
+                                />
+                                <text
+                                  x={x}
+                                  y={y - 2}
+                                  textAnchor='middle'
+                                  style={{
+                                    fill: data.config.color,
+                                    fontSize: '1.2rem',
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {count}
+                                </text>
+                              </>
+                            ) : null}
+                          </g>
+                        );
+                      })}
+
+                      {data.ticks.map((tick, index) => {
+                        const { date, x, y } = tick;
+
+                        return (
+                          <g
+                            key={index}
+                            className='date'
+                            style={{
+                              transform: 'translateX(-20px)',
+                              opacity: 0,
+                            }}
+                          >
+                            <text
+                              x={x}
+                              y={y}
+                              textAnchor='middle'
+                              style={{
+                                fill: '#464d55',
+                                fontSize: '1.2rem',
+                                fontFamily: 'Plus Jakarta Sans',
+                                fontWeight: 600,
+                                transform: 'rotate(45deg)',
+                                transformBox: 'content-box',
+                              }}
+                            >
+                              {date}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </g>
                     <text
-                      x={data.config.paddingX / 2 + 59}
-                      y={103}
+                      x={data.config.chartWidth / 2}
+                      y={data.config.chartHeight - 60}
                       textAnchor='middle'
                       style={{
-                        fill: data.config.color,
+                        fill: '#464d55',
                         fontSize: '1.4rem',
                         fontFamily: 'Plus Jakarta Sans',
                         fontWeight: 600,
-                        textTransform: 'capitalize',
                       }}
                     >
-                      {data.state}
+                      www.punksquirrel.app
                     </text>
-
-                    <text
-                      x={data.config.paddingX / 2}
-                      y={190}
-                      style={{
-                        fill: '#f0f6fc',
-                        fontSize: '4rem',
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontWeight: 700,
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {data.title}
-                    </text>
-                    <text
-                      x={data.config.paddingX / 2}
-                      y={238}
-                      style={{
-                        fill: '#c9d1d9',
-                        fontSize: '1.8rem',
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontWeight: 400,
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {data.owner} • {data.repo}
-                    </text>
-
-                    <text
-                      x={data.config.chartWidth - data.config.paddingX / 2}
-                      y={188}
-                      textAnchor='end'
-                      style={{
-                        fill: '#c9d1d9',
-                        fontSize: '9rem',
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontWeight: 900,
-                      }}
-                    >
-                      {data.total}
-                    </text>
-                    <text
-                      x={data.config.chartWidth - data.config.paddingX / 2 - 140}
-                      y={238}
-                      textAnchor='end'
-                      style={{
-                        fill: '#c9d1d9',
-                        fontSize: '1.8rem',
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontWeight: 600,
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {data.dates.from} • {data.dates.to}
-                    </text>
-                    <text
-                      x={data.config.chartWidth - data.config.paddingX / 2}
-                      y={238}
-                      textAnchor='end'
-                      style={{
-                        fill: '#7d8590',
-                        fontSize: '1.8rem',
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontWeight: 400,
-                        textTransform: 'capitalize',
-                      }}
-                    >
-                      {`(${data.dates.diff} days)`}
-                    </text>
-                  </g>
-
-                  <g>
-                    <polyline
-                      points={data.fills}
-                      style={{
-                        fill: data.config.color,
-                        fillOpacity: 0.1,
-                        stroke: 'none',
-                      }}
-                    />
-
-                    <polyline
-                      points={data.points}
-                      style={{
-                        fill: 'none',
-                        strokeWidth: 3,
-                        stroke: data.config.color,
-                      }}
-                    />
-
-                    {data.properties.map((property, index) => {
-                      const { x, y, count } = property;
-                      return (
-                        <g key={index}>
-                          {count > 0 ? (
-                            <>
-                              <circle
-                                cx={x}
-                                cy={y - 10}
-                                r={20}
-                                style={{
-                                  fill: '#161b22',
-                                  stroke: data.config.color,
-                                  strokeWidth: 3,
-                                }}
-                              />
-                              <text
-                                x={x}
-                                y={y - 2}
-                                textAnchor='middle'
-                                style={{
-                                  fill: data.config.color,
-                                  fontSize: '1.2rem',
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {count}
-                              </text>
-                            </>
-                          ) : null}
-                        </g>
-                      );
-                    })}
-
-                    {data.ticks.map((tick) => {
-                      const { date, x, y } = tick;
-
-                      return (
-                        <text
-                          x={x}
-                          y={y}
-                          textAnchor='middle'
-                          style={{
-                            fill: '#464d55',
-                            fontSize: '1.2rem',
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontWeight: 600,
-                            transform: 'rotate(45deg)',
-                            transformBox: 'content-box',
-                          }}
-                        >
-                          {date}
-                        </text>
-                      );
-                    })}
-                  </g>
-                </>
-              ) : null}
-            </svg>
+                  </>
+                ) : null}
+              </svg>
+              <div className='flex justify-center'>
+                {data ? (
+                  <button
+                    type='button'
+                    className='inline-flex items-center px-5 py-3 rounded-md bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-sm disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
+                    onClick={loadFFmpeg}
+                    disabled={!isAnimationComplete || !isLoaded}
+                  >
+                    Render
+                  </button>
+                ) : null}
+              </div>
+            </div>
+            <div className='fixed bg-brand-surface-1 w-60 h-screen top-0 right-0 border-l border-l-brand-border'>
+              <div className='flex flex-col gap-4 px-4 pt-24'>
+                <div>
+                  <h1 className='mb-0 text-2xl'>Issues</h1>
+                  <time className='block text-sm font-medium'>
+                    {dateFrom} &bull; {dateNow}{' '}
+                  </time>
+                  <small className='text-brand-mid-gray'>{data ? `(${data.dates.diff} days)` : '( days)'}</small>
+                </div>
+                <Form method='post' className='flex flex-col gap-4'>
+                  <input hidden name='dateFrom' defaultValue={dateFrom} />
+                  <input hidden name='dateNow' defaultValue={dateNow} />
+                  <div className='flex flex-col gap-2'>
+                    <label>
+                      Owner
+                      <input type='text' defaultValue='remix-run' placeholder='remix-run' name='owner' />
+                    </label>
+                    <label>
+                      Repository
+                      <input type='text' defaultValue='remix' placeholder='remix' name='repo' />
+                    </label>
+                    <label>
+                      State
+                      <select name='state'>
+                        <option defaultChecked>open</option>
+                        <option>closed</option>
+                      </select>
+                    </label>
+                    <label>
+                      Ratio
+                      <select name='ratio' onChange={handleRatio}>
+                        <option defaultChecked value={1920}>
+                          16:9
+                        </option>
+                        <option value={1080}>1:1</option>
+                      </select>
+                    </label>
+                  </div>
+                  <button
+                    type='submit'
+                    className='inline-flex justify-center items-center px-3 py-2 rounded bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
+                    disabled={state !== 'idle'}
+                  >
+                    Submit
+                  </button>
+                </Form>
+              </div>
+            </div>
           </div>
-
           {data ? (
             <>
               {/* <div className='grid grid-cols-2 gap-4'>

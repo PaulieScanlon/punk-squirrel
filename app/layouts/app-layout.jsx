@@ -24,7 +24,7 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
   return (
     <>
       <header className='sticky top-0 z-20 w-full border-b border-b-brand-border bg-brand-surface-0'>
-        <nav className='flex px-4 h-[64px]'>
+        <nav className='flex px-4 h-[72px]'>
           <Link className='flex items-center no-underline' to='/' aria-current='page'>
             <Logo />
           </Link>
@@ -55,8 +55,8 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
         <div
           id='sidebar'
           className={`fixed top-0 ${
-            isNavOpen ? 'left-0' : '-left-[12rem] lg:left-0'
-          } w-[12rem] h-screen bg-brand-surface-0 overflow-auto border-r border-r-brand-border z-30 transition-all duration-300`}
+            isNavOpen ? 'left-0' : '-left-[16rem] lg:left-0'
+          } w-[16rem] h-screen bg-brand-surface-0 overflow-auto border-r border-r-brand-border z-30 transition-all duration-300`}
         >
           <nav className='flex flex-col p-4 h-full'>
             <Link className='flex items-center no-underline' to='/' aria-current='page'>
@@ -126,9 +126,9 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
           onClick={handleNav}
         />
         <div
-          className={`p-4 ${
-            isNavOpen ? 'ml-0 lg:ml-[12rem]' : 'lg:ml-[12rem]'
-          } max-w-8xl h-[calc(100vh-70px)] min-h-full transition-all duration-300`}
+          className={`p-4 md:p-8 ${
+            isNavOpen ? 'ml-0 lg:ml-[16rem]' : 'lg:ml-[16rem]'
+          } max-w-8xl h-[calc(100vh-73px)] transition-all duration-300`}
         >
           {user ? <> {children}</> : null}
         </div>

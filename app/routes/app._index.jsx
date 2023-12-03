@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLoaderData, useOutletContext, useSearchParams } from '@remix-run/react';
 import { json, redirect } from '@remix-run/node';
-import { Octokit } from 'octokit';
+import { Octokit } from '@octokit/rest';
 
 import { supabaseServer } from '../supabase.server';
 

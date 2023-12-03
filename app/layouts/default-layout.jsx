@@ -29,7 +29,7 @@ const DefaultLayout = ({ supabase, user, children }) => {
   return (
     <>
       <header className='sticky top-0 z-20 w-full border-b border-b-brand-border bg-brand-surface-0'>
-        <nav className='flex gap-8 max-w-8xl mx-auto px-4 h-[64px]'>
+        <nav className='flex gap-8 max-w-8xl mx-auto px-4 h-[72px]'>
           <ul className='flex items-center list-none m-0 p-0'>
             <li className='m-0 p-0'>
               <Link className='flex items-center no-underline' to='/' aria-current='page'>
