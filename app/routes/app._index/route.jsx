@@ -3,9 +3,9 @@ import { useLoaderData, useOutletContext, useSearchParams } from '@remix-run/rea
 import { json, redirect } from '@remix-run/node';
 import { Octokit } from '@octokit/rest';
 
-import { supabaseServer } from '../supabase.server';
+import { supabaseServer } from '../../supabase.server';
 
-import AppLayout from '../layouts/app-layout';
+import AppLayout from '../../layouts/app-layout';
 
 export const loader = async ({ request }) => {
   const { supabaseClient, headers } = await supabaseServer(request);
@@ -14,7 +14,7 @@ export const loader = async ({ request }) => {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
-  if (!session) {
+  if (!session.provider_token) {
     throw redirect('/');
   }
 

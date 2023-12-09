@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useLoaderData, useOutletContext } from '@remix-run/react';
 import { json, redirect } from '@remix-run/node';
 
-import { supabaseServer } from '../supabase.server';
+import { supabaseServer } from '../../supabase.server';
 
-import AppLayout from '../layouts/app-layout';
+import AppLayout from '../../layouts/app-layout';
 
 export const loader = async ({ request }) => {
   const { supabaseClient, headers } = await supabaseServer(request);
@@ -13,7 +13,7 @@ export const loader = async ({ request }) => {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
-  if (!session) {
+  if (!session.provider_token) {
     throw redirect('/');
   }
 

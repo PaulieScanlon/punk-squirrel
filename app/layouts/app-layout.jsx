@@ -130,7 +130,7 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
             isNavOpen ? 'ml-0 lg:ml-[16rem]' : 'lg:ml-[16rem]'
           } max-w-8xl h-[calc(100vh-73px)] transition-all duration-300`}
         >
-          {user ? <> {children}</> : null}
+          {user ? <>{children}</> : null}
         </div>
       </div>
     </>

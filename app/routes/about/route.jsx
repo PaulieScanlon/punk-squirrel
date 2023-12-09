@@ -1,11 +1,11 @@
 import { useOutletContext } from '@remix-run/react';
 
-import DefaultLayout from '../layouts/default-layout';
+import DefaultLayout from '../../layouts/default-layout';
 
 const Page = () => {
-  const { supabase, user } = useOutletContext();
+  const { supabase, session, user } = useOutletContext();
   return (
-    <DefaultLayout supabase={supabase} user={user}>
+    <DefaultLayout supabase={supabase} user={user} session={session}>
       <section className='grid lg:grid-cols-2 lg:p-24 h-full'>
         <div>
           <h1>About</h1>

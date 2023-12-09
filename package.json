@@ -8,13 +8,9 @@
     "dev": "npm run redirects:disable && remix dev",
     "start": "netlify serve",
     "redirects:enable": "shx cp .redirects public/_redirects",
-    "redirects:disable": "shx rm -f public/_redirects",
-    "postinstall": "patch-package"
+    "redirects:disable": "shx rm -f public/_redirects"
   },
   "dependencies": {
-    "@ffmpeg/core": "^0.12.4",
-    "@ffmpeg/ffmpeg": "^0.12.7",
-    "@ffmpeg/util": "^0.12.1",
     "@fontsource/plus-jakarta-sans": "^5.0.17",
     "@netlify/functions": "^2.4.0",
     "@netlify/remix-adapter": "^2.2.0",
@@ -34,8 +30,6 @@
     "@remix-run/dev": "^2.3.0",
     "@remix-run/serve": "^2.3.0",
     "@tailwindcss/typography": "^0.5.10",
-    "patch-package": "^8.0.0",
-    "postinstall-postinstall": "^2.1.0",
     "tailwindcss": "^3.3.5"
   },
   "engines": {

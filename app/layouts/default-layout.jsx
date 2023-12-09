@@ -21,7 +21,7 @@ const authLinks = [
   },
 ];
 
-const DefaultLayout = ({ supabase, user, children }) => {
+const DefaultLayout = ({ supabase, user, session, children }) => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
   };
@@ -52,7 +52,7 @@ const DefaultLayout = ({ supabase, user, children }) => {
                 </li>
               );
             })}
-            {user ? (
+            {session?.provider_token ? (
               <>
                 {authLinks.map((link, index) => {
                   const { to, text } = link;
@@ -71,7 +71,7 @@ const DefaultLayout = ({ supabase, user, children }) => {
               </>
             ) : null}
           </ul>
-          {user ? (
+          {session?.provider_token ? (
             <ul className='flex items-center list-none m-0 p-0'>
               <li className='m-0 p-0'>
                 <DropdownMenu.Root>

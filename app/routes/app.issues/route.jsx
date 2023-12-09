@@ -5,31 +5,33 @@ import { Octokit } from '@octokit/rest';
 import { gsap } from 'gsap';
 import * as DOMPurify from 'dompurify';
 
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { toBlobURL, fetchFile } from '@ffmpeg/util';
+import AppLayout from '../../layouts/app-layout';
 
-import AppLayout from '../layouts/app-layout';
+import { supabaseServer } from '../../supabase.server';
 
-import { supabaseServer } from '../supabase.server';
-
-import { generateDateArray } from '../utils/generate-date-array';
-import { updateDateCount } from '../utils/update-date-count';
-import { formatDate } from '../utils/format-date';
-import { formatTick } from '../utils/format-tick';
-import { findMaxValue } from '../utils/find-max-value';
-import { findTotalValue } from '../utils/find-total-value';
+import { generateDateArray } from '../../utils/generate-date-array';
+import { updateDateCount } from '../../utils/update-date-count';
+import { formatDate } from '../../utils/format-date';
+import { formatTick } from '../../utils/format-tick';
+import { findMaxValue } from '../../utils/find-max-value';
+import { findTotalValue } from '../../utils/find-total-value';
 
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
+
+  const signOut = async () => {
+    await supabaseClient.auth.signOut();
+  };
 
   const {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
   if (!session || !session.provider_token) {
+    console.log('here');
     // console.log('Session: ', session);
     // console.log('Authenticated User: ', await octokit.users.getAuthenticated());
-    await supabaseClient.auth.signOut();
+    signOut();
     throw redirect('/');
   }
 
@@ -167,7 +169,7 @@ export const loader = async ({ request }) => {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
-  if (!session) {
+  if (!session.provider_token) {
     throw redirect('/');
   }
 
@@ -177,7 +179,6 @@ export const loader = async ({ request }) => {
 };
 
 const Page = () => {
-  // const ffmpegRef = useRef(new FFmpeg());
   const { supabase, user } = useOutletContext();
 
   const { state } = useNavigation();
@@ -188,11 +189,12 @@ const Page = () => {
   const chartSvgRef = useRef(null);
   const chartMaskRef = useRef(null);
   const renderMessageRef = useRef(null);
+  const renderButtonRef = useRef(null);
+  const timelineProgressRef = useRef(null);
+  const replayButtonRef = useRef(null);
 
-  const [isAnimationComplete, setIsAnimationComplete] = useState(false);
-  const [animationFrames, setAnimationFrames] = useState([]);
-  const [canvasFrames, setCanvasFrames] = useState([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [animationFrames, setAnimationsFrames] = useState([]);
+
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [ratio, setRatio] = useState(1920);
 
@@ -200,111 +202,98 @@ const Page = () => {
   const dateNow = formatDate(new Date());
 
   let tempAnimationFrames = [];
-  let tempCanvasFrames = [];
+  let isFirstTime = true;
 
-  useEffect(() => {
-    if (data && state === 'idle') {
-      setIsLoaded(true);
-    } else {
-      setIsLoaded(false);
-      setIsAnimationComplete(false);
-    }
-  }, [data, state]);
+  const updateProgress = () => {
+    const progress = Math.round(tl.progress() * 100);
+    timelineProgressRef.current.style.width = `${progress}%`;
+  };
 
-  useEffect(() => {
-    const chartMask = chartMaskRef.current;
-
-    let tl = gsap.timeline({
+  const [tl] = useState(
+    gsap.timeline({
       paused: true,
       onUpdate: () => {
         const svg = DOMPurify.sanitize(chartSvgRef.current);
         const src = `data:image/svg+xml;base64;utf8,${btoa(svg)}`;
-        tempAnimationFrames.push(src);
+        if (isFirstTime) {
+          tempAnimationFrames.push(src);
+        }
+        updateProgress();
       },
       onComplete: async () => {
-        setIsAnimationComplete(true);
-        setAnimationFrames(tempAnimationFrames);
+        console.log('onComplete');
+        renderButtonRef.current.disabled = false;
+        replayButtonRef.current.disabled = false;
+        console.log('tempAnimationFrames.length: ', tempAnimationFrames.length);
+        if (isFirstTime) {
+          setAnimationsFrames(tempAnimationFrames);
+        }
+        isFirstTime = false;
       },
-    });
-    if (isLoaded) {
+    })
+  );
+
+  useEffect(() => {
+    const chartMask = chartMaskRef.current;
+
+    if (data) {
       const duration = 6;
-      const stagger = (duration - 1) / data.points.length;
-      tl.seek(0);
+      const stagger = duration / data.points.length;
       tl.play();
-      tl.to(chartMask, { duration: duration, width: data.config.chartWidth, ease: 'sine.out' });
+      tl.to(chartMask, { duration: duration, width: data.config.chartWidth, ease: 'linear' });
+      tl.to('#total', { duration: duration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' }, '<');
       tl.to(
         '.value',
-        { duration: 0.3, transform: 'translateY(0px)', opacity: 1, stagger: stagger, ease: 'sine.out' },
+        { duration: 0.3, transform: 'translateY(0px)', opacity: 1, stagger: stagger, ease: 'linear' },
         '<'
       );
-      tl.to('.date', { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: 0.16, ease: 'sine.out' }, '<');
-      tl.to('#total', { duration: 1, textContent: data.total, snap: { textContent: 1 }, ease: 'sine.out' }, '>-1');
+      tl.to('.date', { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: 0.16, ease: 'linear' }, '<');
     } else {
-      tl.clear();
+      tl.kill();
+      renderButtonRef.current.disabled = true;
+      replayButtonRef.current.disabled = true;
     }
-  }, [isLoaded]);
+  }, [data]);
 
-  const loadFFmpeg = async () => {
-    const ffmpeg = new FFmpeg();
-    console.log(ffmpeg);
-    const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/esm';
-
-    ffmpeg.on('log', ({ message }) => {
-      console.log(message);
-    });
-
-    await ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-    });
+  const handleTimeline = () => {
+    console.log('handleTimeline');
+    tl.restart();
   };
 
-  // const renderVideo = async () => {
-  //   console.log('renderVideo');
-  //   const canvas = chartCanvasRef.current;
-  //   const ctx = canvas.getContext('2d');
+  const handleRender = async () => {
+    console.log('handleRender');
+    renderButtonRef.current.disabled = true;
+    replayButtonRef.current.disabled = true;
+    const canvas = chartCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    let canvasFrames = [];
 
-  //   let inc = 0;
+    let inc = 0;
 
-  //   const createRasterizedImage = () => {
-  //     const virtualImage = new Image();
-  //     virtualImage.src = animationFrames[inc];
+    const createRasterizedImage = () => {
+      const virtualImage = new Image();
+      virtualImage.src = animationFrames[inc];
 
-  //     virtualImage.addEventListener('load', async () => {
-  //       renderMessageRef.current.innerHTML = `Preparing frame: ${inc} of ${animationFrames.length - 1}`;
-  //       ctx.clearRect(0, 0, data.config.chartWidth, data.config.chartHeight);
-  //       ctx.drawImage(virtualImage, 0, 0, data.config.chartWidth, data.config.chartHeight);
-  //       tempCanvasFrames.push(canvas.toDataURL('image/jpeg'));
-  //       inc++;
-  //       if (inc < animationFrames.length) {
-  //         createRasterizedImage();
-  //       } else {
-  //         console.log('onComplete');
-  //         setCanvasFrames(tempCanvasFrames);
-  //         const ffmpeg = new FFmpeg();
-  //         console.log('ffmpeg: ', ffmpeg);
+      virtualImage.addEventListener('load', async () => {
+        renderMessageRef.current.innerHTML = !data ? '' : `Preparing frame: ${inc} of ${animationFrames.length - 1}`;
+        ctx.clearRect(0, 0, data.config.chartWidth, data.config.chartHeight);
+        ctx.drawImage(virtualImage, 0, 0, data.config.chartWidth, data.config.chartHeight);
+        canvasFrames.push(canvas.toDataURL('image/jpeg'));
+        inc++;
+        if (inc < animationFrames.length) {
+          createRasterizedImage();
+        } else {
+          console.log('onComplete');
+        }
+      });
 
-  //         const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.4/dist/esm';
+      virtualImage.addEventListener('error', (error) => {
+        console.log('virtualImage.error: ', error);
+      });
+    };
 
-  //         await ffmpeg.load({
-  //           coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-  //           wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-  //           // coreURL: await toBlobURL('/@ffmpeg/core/dist/esm/ffmpeg-core.js', 'text/javascript'),
-  //           // wasmURL: await toBlobURL('/@ffmpeg/core/dist/esm/ffmpeg-core.wasm', 'application/wasm'),
-  //         });
-  //         //   ffmpeg.on('progress', ({ progress, time }) => {
-  //         //     console.log(`Transcoding: ${progress}% | ${time / 1000000} s`);
-  //         //   });
-  //       }
-  //     });
-
-  //     virtualImage.addEventListener('error', (error) => {
-  //       console.log('virtualImage.error: ', error);
-  //     });
-  //   };
-
-  //   createRasterizedImage();
-  // };
+    createRasterizedImage();
+  };
 
   const handleRatio = (event) => {
     setIsLoaded(false);
@@ -316,18 +305,15 @@ const Page = () => {
     setIsNavOpen(!isNavOpen);
   };
 
+  // console.log(data);
+  // console.log('animationFrames.length: ', animationFrames.length);
+
   return (
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <section className=''>
           <div className='flex mr-60'>
             <div className={`flex flex-col gap-4 grow ${ratio === '1080' ? 'px-32' : null}`}>
-              <canvas
-                ref={chartCanvasRef}
-                className='hidden'
-                width={isLoaded ? data.config.chartWidth : '100%'}
-                height={isLoaded ? data.config.chartHeight : 'auto'}
-              />
               <svg
                 ref={chartSvgRef}
                 xmlns='http://www.w3.org/2000/svg'
@@ -336,7 +322,7 @@ const Page = () => {
                   background: '#0d1117',
                 }}
               >
-                {isLoaded ? (
+                {data ? (
                   <>
                     <defs>
                       <clipPath id='clip-mask'>
@@ -431,7 +417,9 @@ const Page = () => {
                           fontFamily: 'Plus Jakarta Sans',
                           fontWeight: 900,
                         }}
-                      ></text>
+                      >
+                        0
+                      </text>
                       <text
                         x={data.config.chartWidth - data.config.paddingX / 2 - 140}
                         y={238}
@@ -572,22 +560,60 @@ const Page = () => {
                   </>
                 ) : null}
               </svg>
-              <div className='flex justify-between'>
-                {data ? (
-                  <>
-                    <small ref={renderMessageRef} className='text-xs text-brand-mid-gray'></small>
-                    <div>
-                      <button
-                        type='button'
-                        className='inline-flex items-center px-3 py-2 rounded-md bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
-                        onClick={loadFFmpeg}
-                        disabled={!isAnimationComplete || !isLoaded}
-                      >
-                        Render
-                      </button>
-                    </div>
-                  </>
-                ) : null}
+
+              {data ? (
+                <>
+                  <canvas
+                    ref={chartCanvasRef}
+                    className='hidden'
+                    width={data.config.chartWidth}
+                    height={data.config.chartHeight}
+                    style={{
+                      background: '#0d1117',
+                    }}
+                  />
+                </>
+              ) : null}
+              <div className='flex items-center justify-between bg-brand-surface-0 p-2 gap-4'>
+                <div className='w-full bg-brand-surface-2 rounded-full h-1'>
+                  <div
+                    ref={timelineProgressRef}
+                    className='bg-brand-blue rounded-full h-1 w-0 transition-all duration-100'
+                  />
+                </div>
+                <button
+                  ref={replayButtonRef}
+                  className='inline-flex items-center p-2 rounded-md bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
+                  onClick={handleTimeline}
+                >
+                  <svg
+                    xmlns='http://www.w3.org/2000/svg'
+                    fill='none'
+                    viewBox='0 0 24 24'
+                    strokeWidth={2}
+                    stroke='currentColor'
+                    className='w-4 h-4'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      d='M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99'
+                    />
+                  </svg>
+                </button>
+              </div>
+              <div className='flex items-center justify-between bg-brand-surface-0 p-2'>
+                <small ref={renderMessageRef} className='text-xs text-brand-mid-gray'></small>
+                <div className='flex gap-4'>
+                  <button
+                    ref={renderButtonRef}
+                    type='button'
+                    className='inline-flex items-center px-3 py-2 rounded-md bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
+                    onClick={handleRender}
+                  >
+                    Render
+                  </button>
+                </div>
               </div>
             </div>
             <div className='fixed bg-brand-surface-1 w-60 h-screen top-0 right-0 border-l border-l-brand-border'>
@@ -639,16 +665,6 @@ const Page = () => {
               </div>
             </div>
           </div>
-          {data ? (
-            <>
-              {/* <div className='grid grid-cols-2 gap-4'>
-                <pre>{JSON.stringify(data.insideSevenDays, null, 2)}</pre>
-                <pre>{JSON.stringify(data.outsideSevenDays, null, 2)}</pre>
-              </div> */}
-              {/* <pre>{JSON.stringify(data.issues.data, null, 2)}</pre> */}
-              {/* <pre>{JSON.stringify(data.groupedIssues, null, 2)}</pre> */}
-            </>
-          ) : null}
         </section>
       </AppLayout>
     </>
