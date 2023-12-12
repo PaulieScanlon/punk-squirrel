@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Form, useActionData, useRevalidator, useOutletContext, useNavigation } from '@remix-run/react';
+import { Form, useActionData, useRouteError, useRevalidator, useOutletContext, useNavigation } from '@remix-run/react';
 import { json, redirect } from '@remix-run/node';
 import { Octokit } from '@octokit/rest';
 import { gsap } from 'gsap';
@@ -8,6 +8,7 @@ import { gsap } from 'gsap';
 import * as DOMPurify from 'dompurify';
 
 import AppLayout from '../../layouts/app-layout';
+import ErrorAnnounce from '../../components/error-announce';
 
 import { supabaseServer } from '../../supabase.server';
 
@@ -51,24 +52,6 @@ export const action = async ({ request }) => {
   const dateNow = body.get('dateNow');
   const dateDiff = Math.round((new Date(dateNow) - new Date(dateFrom)) / (1000 * 60 * 60 * 24));
 
-  // https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28
-  const issues = await octokit.request('GET /repos/{owner}/{repo}/issues', {
-    owner: owner,
-    repo: repo,
-    per_page: 100,
-    sort: 'created',
-    state: state,
-    created: 'created',
-    since: dateFrom,
-    headers: {
-      'X-GitHub-Api-Version': '2022-11-28',
-    },
-  });
-
-  const { dateRange } = updateDateCount(issues.data, generateDateArray(dateDiff));
-
-  const maxValue = findMaxValue(dateRange, 'count');
-  const total = findTotalValue(dateRange, 'count');
   const chartWidth = ratio;
   const chartHeight = 1080;
   const offsetY = 220;
@@ -77,61 +60,7 @@ export const action = async ({ request }) => {
   const paddingY = 340;
   const guides = [...Array(8).keys()];
 
-  const createProperties = (array) => {
-    return array.map((entry, index) => {
-      const { count } = entry;
-
-      const x_ratio = index / (array.length - 1);
-      const y_ratio = count / maxValue;
-      const x = x_ratio * (chartWidth - paddingX) + paddingX / 2;
-      const y = _chartHeight - y_ratio * (_chartHeight - paddingY);
-
-      return {
-        count,
-        x,
-        y,
-      };
-    });
-  };
-
-  const createPoints = (array) => {
-    return array.map((point) => {
-      const { x, y } = point;
-      return `${x},${y}`;
-    });
-  };
-
-  const createFills = (array) => {
-    const dataArray = array.map((point) => {
-      const { x, y } = point;
-      return `${x},${y}`;
-    });
-
-    // first x, chartHeight - offsetY
-    const starValues = [dataArray[0].split(',')[0], _chartHeight];
-    // last x, chartHeight + paddingY * 2
-    const endValues = [dataArray[dataArray.length - 1].split(',')[0], _chartHeight];
-
-    return [starValues, dataArray, endValues].toString();
-  };
-
-  const createTicks = (array) => {
-    return array.map((tick, index) => {
-      const { date } = tick;
-
-      const x_ratio = index / (array.length - 1);
-      const x = x_ratio * (chartWidth - paddingX) + paddingX / 2;
-      const y = _chartHeight;
-
-      return {
-        date: formatTick(date),
-        x: x + 20,
-        y: y + 45,
-      };
-    });
-  };
-
-  return json({
+  const defaultResponse = {
     title: 'issues',
     owner,
     repo,
@@ -141,13 +70,6 @@ export const action = async ({ request }) => {
       to: dateNow,
       diff: dateDiff,
     },
-    maxValue,
-    total,
-    ticks: createTicks(dateRange),
-    properties: createProperties(dateRange),
-    points: createPoints(createProperties(dateRange)),
-    fills: createFills(createProperties(dateRange)),
-    data: dateRange,
     config: {
       chartWidth,
       chartHeight,
@@ -158,7 +80,112 @@ export const action = async ({ request }) => {
       guides,
       color: state === 'open' ? '#3fb950' : '#f85149',
     },
-  });
+  };
+
+  try {
+    // https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28
+    const response = await octokit.request('GET /repos/{owner}/{repo}/issues', {
+      owner: owner,
+      repo: repo,
+      per_page: 100,
+      sort: 'created',
+      state: state,
+      created: 'created',
+      since: dateFrom,
+      headers: {
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    });
+
+    const { dateRange } = updateDateCount(response.data, generateDateArray(dateDiff));
+
+    const maxValue = findMaxValue(dateRange, 'count');
+    const total = findTotalValue(dateRange, 'count');
+
+    const createProperties = (array) => {
+      return array.map((entry, index) => {
+        const { count } = entry;
+
+        const x_ratio = index / (array.length - 1);
+        const y_ratio = count / maxValue;
+        const x = x_ratio * (chartWidth - paddingX) + paddingX / 2;
+        const y = _chartHeight - y_ratio * (_chartHeight - paddingY);
+
+        return {
+          count,
+          x,
+          y,
+        };
+      });
+    };
+
+    const createPoints = (array) => {
+      return array.map((point) => {
+        const { x, y } = point;
+        return `${x},${y}`;
+      });
+    };
+
+    const createFills = (array) => {
+      const dataArray = array.map((point) => {
+        const { x, y } = point;
+        return `${x},${y}`;
+      });
+
+      // first x, chartHeight - offsetY
+      const starValues = [dataArray[0].split(',')[0], _chartHeight];
+      // last x, chartHeight + paddingY * 2
+      const endValues = [dataArray[dataArray.length - 1].split(',')[0], _chartHeight];
+
+      return [starValues, dataArray, endValues].toString();
+    };
+
+    const createTicks = (array) => {
+      return array.map((tick, index) => {
+        const { date } = tick;
+
+        const x_ratio = index / (array.length - 1);
+        const x = x_ratio * (chartWidth - paddingX) + paddingX / 2;
+        const y = _chartHeight;
+
+        return {
+          date: formatTick(date),
+          x: x + 20,
+          y: y + 45,
+        };
+      });
+    };
+
+    return json({
+      ...defaultResponse,
+      response: {
+        status: 200,
+        message: !response.data.length ? 'No Data' : '',
+      },
+      maxValue,
+      total,
+      ticks: createTicks(dateRange),
+      properties: createProperties(dateRange),
+      points: createPoints(createProperties(dateRange)),
+      fills: createFills(createProperties(dateRange)),
+      data: dateRange,
+    });
+  } catch (error) {
+    return json({
+      ...defaultResponse,
+      response: {
+        status: 404,
+        message: error.response.data.message,
+      },
+      maxValue: 0,
+      total: 0,
+      ticks: [],
+      properties: [],
+      points: [],
+      fills: [],
+      data: [],
+    });
+  }
 };
 
 export const loader = async ({ request }) => {
@@ -179,11 +206,14 @@ export const loader = async ({ request }) => {
 
 const Page = () => {
   const { supabase, user } = useOutletContext();
+  const [isNavOpen, setIsNavOpen] = useState(false);
 
   const { state } = useNavigation();
 
   const data = useActionData();
   const revalidator = useRevalidator();
+
+  console.log('data: ', data);
 
   const chartCanvasRef = useRef(null);
   const chartSvgRef = useRef(null);
@@ -197,18 +227,6 @@ const Page = () => {
     frames: [],
     ratio: 1920,
   });
-
-  const [isNavOpen, setIsNavOpen] = useState(false);
-
-  const dateFrom = formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-  const dateNow = formatDate(new Date());
-
-  let tempAnimationFrames = [];
-
-  const updateProgress = () => {
-    const progress = Math.round(tl.progress() * 100);
-    timelineProgressRef.current.style.width = `${progress}%`;
-  };
 
   const tl = useMemo(
     () =>
@@ -239,10 +257,20 @@ const Page = () => {
     []
   );
 
+  const dateFrom = formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+  const dateNow = formatDate(new Date());
+
+  let tempAnimationFrames = [];
+
+  const updateProgress = () => {
+    const progress = Math.round(tl.progress() * 100);
+    timelineProgressRef.current.style.width = `${progress}%`;
+  };
+
   useEffect(() => {
     const chartMask = chartMaskRef.current;
 
-    if (data !== undefined && state === 'idle') {
+    if (data !== undefined && data.response.status === 200 && state === 'idle') {
       const duration = 6;
       const stagger = duration / data.points.length;
       tl.play();
@@ -319,7 +347,6 @@ const Page = () => {
         // console.error('virtualImage.error: ', error);
       });
     };
-
     createRasterizedImage();
   };
 
@@ -340,20 +367,10 @@ const Page = () => {
     setIsNavOpen(!isNavOpen);
   };
 
-  // console.log(state);
-  // console.log(data);
-  // console.log('animationFrames.length: ', animationFrames.length);
-
   return (
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
-        <section className=''>
-          {/* <pre>{JSON.stringify(interfaceState, null, 2)}</pre> */}
-          {/* <div>{`interfaceState.animation: ${interfaceState.animation}`}</div> */}
-          {/* <div>{`interfaceState.frames: ${interfaceState.frames.length}`}</div> */}
-          {/* <div>{`interfaceState.ratio: ${interfaceState.ratio}`}</div> */}
-          {/* <div>{`state: ${state}`}</div> */}
-          {/* <div>{`data: ${data}`}</div> */}
+        <section>
           <div className='flex mr-60'>
             <div className={`flex flex-col gap-4 grow mx-auto ${interfaceState.ratio === '1080' ? 'max-w-lg' : ''}`}>
               <svg
@@ -364,7 +381,7 @@ const Page = () => {
                   background: '#0d1117',
                 }}
               >
-                {data && state === 'idle' ? (
+                {data && data.response.status === 200 && state === 'idle' ? (
                   <>
                     <defs>
                       <clipPath id='clip-mask'>
@@ -628,7 +645,9 @@ const Page = () => {
                 <button
                   className='inline-flex items-center p-2 rounded-md bg-brand-blue enabled:hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
                   onClick={handleRestartTimeline}
-                  disabled={data === undefined || state !== 'idle' || interfaceState.rendering}
+                  disabled={
+                    data === undefined || state !== 'idle' || interfaceState.rendering || data.response.status !== 200
+                  }
                 >
                   <svg
                     xmlns='http://www.w3.org/2000/svg'
@@ -657,7 +676,8 @@ const Page = () => {
                       data === undefined ||
                       state !== 'idle' ||
                       interfaceState.animation !== 'idle' ||
-                      interfaceState.rendering
+                      interfaceState.rendering ||
+                      data.response.status !== 200
                     }
                   >
                     Render
@@ -682,7 +702,7 @@ const Page = () => {
                       Owner
                       <input
                         type='text'
-                        defaultValue='remix-run'
+                        defaultValue=''
                         placeholder='remix-run'
                         name='owner'
                         disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
@@ -692,7 +712,7 @@ const Page = () => {
                       Repository
                       <input
                         type='text'
-                        defaultValue='remix'
+                        defaultValue=''
                         placeholder='remix'
                         name='repo'
                         disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
@@ -723,6 +743,7 @@ const Page = () => {
                       </select>
                     </label>
                   </div>
+                  <ErrorAnnounce message={data?.response.message} />
                   <button
                     type='submit'
                     className='inline-flex justify-center items-center px-3 py-2 rounded bg-brand-pink enabled:hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'

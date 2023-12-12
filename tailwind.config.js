@@ -54,7 +54,6 @@ export default {
               minWidth: '140px',
               minHeight: '34px',
               width: '100%',
-
               '&:disabled': {
                 color: theme('colors.brand.mid-gray'),
               },
