@@ -15,7 +15,7 @@ const SignInButton = ({ authRedirect, supabase }) => {
   return (
     <button
       onClick={handleSignIn}
-      className='flex items-center gap-3 px-4 py-2 rounded-lg bg-brand-purple hover:brightness-110 transition-all duration-300'
+      className='flex items-center gap-3 px-4 py-2 rounded-lg bg-brand-pink hover:brightness-110 transition-all duration-300'
     >
       <svg xmlns='http://www.w3.org/2000/svg' className='h-6 w-6' fill='currentColor' viewBox='0 0 24 24'>
         <path
