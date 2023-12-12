@@ -14,6 +14,8 @@ export default {
           teal: '#33b3ae',
           red: '#f85149',
           yellow: '#ffd33d',
+          'punk-teal': '#02e9a7',
+          'punk-pink': '#f21cca',
           'light-gray': '#c9d1d9',
           'mid-gray': '#7d8590',
           'dark-gray': '#30363d',
@@ -52,6 +54,10 @@ export default {
               minWidth: '140px',
               minHeight: '34px',
               width: '100%',
+
+              '&:disabled': {
+                color: theme('colors.brand.mid-gray'),
+              },
             },
             'h1, h2, h3, h4, h5, h6': {
               fontFamily: 'Plus Jakarta Sans',

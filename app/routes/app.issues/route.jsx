@@ -1,8 +1,10 @@
-import { useState, useRef, useEffect } from 'react';
-import { Form, useActionData, useOutletContext, useNavigation } from '@remix-run/react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Form, useActionData, useRevalidator, useOutletContext, useNavigation } from '@remix-run/react';
 import { json, redirect } from '@remix-run/node';
 import { Octokit } from '@octokit/rest';
 import { gsap } from 'gsap';
+// import { useGSAP } from '@gsap/react';
+
 import * as DOMPurify from 'dompurify';
 
 import AppLayout from '../../layouts/app-layout';
@@ -28,7 +30,6 @@ export const action = async ({ request }) => {
   } = await supabaseClient.auth.getSession();
 
   if (!session || !session.provider_token) {
-    console.log('here');
     // console.log('Session: ', session);
     // console.log('Authenticated User: ', await octokit.users.getAuthenticated());
     signOut();
@@ -97,9 +98,7 @@ export const action = async ({ request }) => {
     return array.map((point) => {
       const { x, y } = point;
       return `${x},${y}`;
-      // return { x, y };
     });
-    // .toString();
   };
 
   const createFills = (array) => {
@@ -169,7 +168,7 @@ export const loader = async ({ request }) => {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
-  if (!session.provider_token) {
+  if (!session || !session.provider_token) {
     throw redirect('/');
   }
 
@@ -184,59 +183,66 @@ const Page = () => {
   const { state } = useNavigation();
 
   const data = useActionData();
+  const revalidator = useRevalidator();
 
   const chartCanvasRef = useRef(null);
   const chartSvgRef = useRef(null);
   const chartMaskRef = useRef(null);
   const renderMessageRef = useRef(null);
-  const renderButtonRef = useRef(null);
   const timelineProgressRef = useRef(null);
-  const replayButtonRef = useRef(null);
 
-  const [animationFrames, setAnimationsFrames] = useState([]);
+  const [interfaceState, setInterfaceState] = useState({
+    animation: 'idle',
+    rendering: false,
+    frames: [],
+    ratio: 1920,
+  });
 
   const [isNavOpen, setIsNavOpen] = useState(false);
-  const [ratio, setRatio] = useState(1920);
 
   const dateFrom = formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
   const dateNow = formatDate(new Date());
 
   let tempAnimationFrames = [];
-  let isFirstTime = true;
 
   const updateProgress = () => {
     const progress = Math.round(tl.progress() * 100);
     timelineProgressRef.current.style.width = `${progress}%`;
   };
 
-  const [tl] = useState(
-    gsap.timeline({
-      paused: true,
-      onUpdate: () => {
-        const svg = DOMPurify.sanitize(chartSvgRef.current);
-        const src = `data:image/svg+xml;base64;utf8,${btoa(svg)}`;
-        if (isFirstTime) {
+  const tl = useMemo(
+    () =>
+      gsap.timeline({
+        paused: true,
+        onUpdate: () => {
+          // console.log('onUpdate');
+          const svg = DOMPurify.sanitize(chartSvgRef.current);
+          const src = `data:image/svg+xml;base64;utf8,${btoa(svg)}`;
           tempAnimationFrames.push(src);
-        }
-        updateProgress();
-      },
-      onComplete: async () => {
-        console.log('onComplete');
-        renderButtonRef.current.disabled = false;
-        replayButtonRef.current.disabled = false;
-        console.log('tempAnimationFrames.length: ', tempAnimationFrames.length);
-        if (isFirstTime) {
-          setAnimationsFrames(tempAnimationFrames);
-        }
-        isFirstTime = false;
-      },
-    })
+          updateProgress();
+        },
+        onStart: () => {
+          // console.log('onStart');
+          tempAnimationFrames.length = [];
+        },
+        onComplete: () => {
+          // console.log('onComplete');
+          // console.log('tempAnimationFrames.length:', tempAnimationFrames.length);
+
+          setInterfaceState((prevState) => ({
+            ...prevState,
+            animation: 'idle',
+            frames: tempAnimationFrames,
+          }));
+        },
+      }),
+    []
   );
 
   useEffect(() => {
     const chartMask = chartMaskRef.current;
 
-    if (data) {
+    if (data !== undefined && state === 'idle') {
       const duration = 6;
       const stagger = duration / data.points.length;
       tl.play();
@@ -248,22 +254,36 @@ const Page = () => {
         '<'
       );
       tl.to('.date', { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: 0.16, ease: 'linear' }, '<');
-    } else {
-      tl.kill();
-      renderButtonRef.current.disabled = true;
-      replayButtonRef.current.disabled = true;
-    }
-  }, [data]);
 
-  const handleTimeline = () => {
-    console.log('handleTimeline');
+      setInterfaceState((prevState) => ({
+        ...prevState,
+        animation: 'active',
+      }));
+    } else {
+      tl.clear();
+      timelineProgressRef.current.style.width = '0%';
+      renderMessageRef.current.innerHTML = '';
+    }
+  }, [data, state]);
+
+  const handleRestartTimeline = () => {
     tl.restart();
+
+    setInterfaceState((prevState) => ({
+      ...prevState,
+      animation: 'active',
+      frames: [],
+    }));
   };
 
   const handleRender = async () => {
-    console.log('handleRender');
-    renderButtonRef.current.disabled = true;
-    replayButtonRef.current.disabled = true;
+    // console.log('handleRender');
+
+    setInterfaceState((prevState) => ({
+      ...prevState,
+      rendering: true,
+    }));
+
     const canvas = chartCanvasRef.current;
     const ctx = canvas.getContext('2d');
     let canvasFrames = [];
@@ -272,23 +292,31 @@ const Page = () => {
 
     const createRasterizedImage = () => {
       const virtualImage = new Image();
-      virtualImage.src = animationFrames[inc];
+      virtualImage.src = interfaceState.frames[inc];
 
       virtualImage.addEventListener('load', async () => {
-        renderMessageRef.current.innerHTML = !data ? '' : `Preparing frame: ${inc} of ${animationFrames.length - 1}`;
+        renderMessageRef.current.innerHTML = !data
+          ? ''
+          : `Preparing frame: ${inc} of ${interfaceState.frames.length - 1}`;
         ctx.clearRect(0, 0, data.config.chartWidth, data.config.chartHeight);
         ctx.drawImage(virtualImage, 0, 0, data.config.chartWidth, data.config.chartHeight);
         canvasFrames.push(canvas.toDataURL('image/jpeg'));
         inc++;
-        if (inc < animationFrames.length) {
+        if (inc < interfaceState.frames.length) {
           createRasterizedImage();
         } else {
-          console.log('onComplete');
+          // console.log('onComplete');
+          renderMessageRef.current.innerHTML = 'TODO: ffmpeg/WASM progress here';
+          // TODO don't set rendering to false until after ffmpeg/WASM has completed
+          setInterfaceState((prevState) => ({
+            ...prevState,
+            rendering: false,
+          }));
         }
       });
 
       virtualImage.addEventListener('error', (error) => {
-        console.log('virtualImage.error: ', error);
+        // console.error('virtualImage.error: ', error);
       });
     };
 
@@ -296,15 +324,23 @@ const Page = () => {
   };
 
   const handleRatio = (event) => {
-    setIsLoaded(false);
-    setIsAnimationComplete(false);
-    setRatio(event.target.value);
+    revalidator.revalidate();
+    setInterfaceState((prevState) => ({
+      ...prevState,
+      animation: 'idle',
+      ratio: event.target.value,
+    }));
+  };
+
+  const handleState = () => {
+    revalidator.revalidate();
   };
 
   const handleNav = () => {
     setIsNavOpen(!isNavOpen);
   };
 
+  // console.log(state);
   // console.log(data);
   // console.log('animationFrames.length: ', animationFrames.length);
 
@@ -312,17 +348,23 @@ const Page = () => {
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <section className=''>
+          {/* <pre>{JSON.stringify(interfaceState, null, 2)}</pre> */}
+          {/* <div>{`interfaceState.animation: ${interfaceState.animation}`}</div> */}
+          {/* <div>{`interfaceState.frames: ${interfaceState.frames.length}`}</div> */}
+          {/* <div>{`interfaceState.ratio: ${interfaceState.ratio}`}</div> */}
+          {/* <div>{`state: ${state}`}</div> */}
+          {/* <div>{`data: ${data}`}</div> */}
           <div className='flex mr-60'>
-            <div className={`flex flex-col gap-4 grow ${ratio === '1080' ? 'px-32' : null}`}>
+            <div className={`flex flex-col gap-4 grow mx-auto ${interfaceState.ratio === '1080' ? 'max-w-lg' : ''}`}>
               <svg
                 ref={chartSvgRef}
                 xmlns='http://www.w3.org/2000/svg'
-                viewBox={`0 0 ${ratio} 1080`}
+                viewBox={`0 0 ${interfaceState.ratio} 1080`}
                 style={{
                   background: '#0d1117',
                 }}
               >
-                {data ? (
+                {data && state === 'idle' ? (
                   <>
                     <defs>
                       <clipPath id='clip-mask'>
@@ -546,10 +588,10 @@ const Page = () => {
                     </g>
                     <text
                       x={data.config.chartWidth / 2}
-                      y={data.config.chartHeight - 60}
+                      y={data.config.chartHeight - 55}
                       textAnchor='middle'
                       style={{
-                        fill: '#464d55',
+                        fill: '#7d8590',
                         fontSize: '1.4rem',
                         fontFamily: 'Plus Jakarta Sans',
                         fontWeight: 600,
@@ -561,7 +603,7 @@ const Page = () => {
                 ) : null}
               </svg>
 
-              {data ? (
+              {data && state === 'idle' ? (
                 <>
                   <canvas
                     ref={chartCanvasRef}
@@ -578,13 +620,15 @@ const Page = () => {
                 <div className='w-full bg-brand-surface-2 rounded-full h-1'>
                   <div
                     ref={timelineProgressRef}
-                    className='bg-brand-blue rounded-full h-1 w-0 transition-all duration-100'
+                    className={`${
+                      interfaceState.rendering ? 'bg-brand-surface-2' : 'bg-brand-blue'
+                    } rounded-full h-1 w-0 transition-all duration-100`}
                   />
                 </div>
                 <button
-                  ref={replayButtonRef}
-                  className='inline-flex items-center p-2 rounded-md bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
-                  onClick={handleTimeline}
+                  className='inline-flex items-center p-2 rounded-md bg-brand-blue enabled:hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
+                  onClick={handleRestartTimeline}
+                  disabled={data === undefined || state !== 'idle' || interfaceState.rendering}
                 >
                   <svg
                     xmlns='http://www.w3.org/2000/svg'
@@ -592,7 +636,7 @@ const Page = () => {
                     viewBox='0 0 24 24'
                     strokeWidth={2}
                     stroke='currentColor'
-                    className='w-4 h-4'
+                    className='not-prose w-4 h-4'
                   >
                     <path
                       strokeLinecap='round'
@@ -603,13 +647,18 @@ const Page = () => {
                 </button>
               </div>
               <div className='flex items-center justify-between bg-brand-surface-0 p-2'>
-                <small ref={renderMessageRef} className='text-xs text-brand-mid-gray'></small>
+                <small ref={renderMessageRef} className='text-xs text-brand-text'></small>
                 <div className='flex gap-4'>
                   <button
-                    ref={renderButtonRef}
                     type='button'
-                    className='inline-flex items-center px-3 py-2 rounded-md bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
+                    className='inline-flex items-center px-3 py-2 rounded-md bg-brand-pink enabled:hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
                     onClick={handleRender}
+                    disabled={
+                      data === undefined ||
+                      state !== 'idle' ||
+                      interfaceState.animation !== 'idle' ||
+                      interfaceState.rendering
+                    }
                   >
                     Render
                   </button>
@@ -631,22 +680,42 @@ const Page = () => {
                   <div className='flex flex-col gap-2'>
                     <label>
                       Owner
-                      <input type='text' defaultValue='remix-run' placeholder='remix-run' name='owner' />
+                      <input
+                        type='text'
+                        defaultValue='remix-run'
+                        placeholder='remix-run'
+                        name='owner'
+                        disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
+                      />
                     </label>
                     <label>
                       Repository
-                      <input type='text' defaultValue='remix' placeholder='remix' name='repo' />
+                      <input
+                        type='text'
+                        defaultValue='remix'
+                        placeholder='remix'
+                        name='repo'
+                        disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
+                      />
                     </label>
                     <label>
                       State
-                      <select name='state'>
+                      <select
+                        name='state'
+                        onChange={handleState}
+                        disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
+                      >
                         <option defaultChecked>open</option>
                         <option>closed</option>
                       </select>
                     </label>
                     <label>
                       Ratio
-                      <select name='ratio' onChange={handleRatio}>
+                      <select
+                        name='ratio'
+                        onChange={handleRatio}
+                        disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
+                      >
                         <option defaultChecked value={1920}>
                           16:9
                         </option>
@@ -656,8 +725,8 @@ const Page = () => {
                   </div>
                   <button
                     type='submit'
-                    className='inline-flex justify-center items-center px-3 py-2 rounded bg-brand-blue hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
-                    disabled={state !== 'idle'}
+                    className='inline-flex justify-center items-center px-3 py-2 rounded bg-brand-pink enabled:hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
+                    disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
                   >
                     Submit
                   </button>

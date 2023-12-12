@@ -13,7 +13,7 @@ export const loader = async ({ request }) => {
     data: { session },
   } = await supabaseClient.auth.getSession();
 
-  if (!session.provider_token) {
+  if (!session || !session.provider_token) {
     throw redirect('/');
   }
 
