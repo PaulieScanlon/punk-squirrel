@@ -3,23 +3,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 import Logo from '../components/logo';
 
-const navLinks = [
-  {
-    to: '/',
-    text: 'Home',
-  },
-  {
-    to: '/about',
-    text: 'About',
-  },
-];
-
-const authLinks = [
-  {
-    to: '/app',
-    text: 'Dashboard',
-  },
-];
+import { navLinks } from './nav-links';
 
 const DefaultLayout = ({ supabase, user, session, children }) => {
   const handleSignOut = async () => {

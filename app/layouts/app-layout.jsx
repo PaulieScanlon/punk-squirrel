@@ -2,23 +2,7 @@ import { Link } from '@remix-run/react';
 import Logo from '../components/logo';
 import SignOutButton from '../components/sign-out-button';
 
-const appLinks = [
-  {
-    to: '/app',
-    text: 'Dashboard',
-  },
-  {
-    to: '/app/issues',
-    text: 'Issues',
-  },
-];
-
-const accountLinks = [
-  {
-    to: '/app/account',
-    text: 'Account',
-  },
-];
+import { appLinks, accountLinks } from './app-links';
 
 const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
   return (
