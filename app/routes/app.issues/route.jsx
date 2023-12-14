@@ -422,11 +422,11 @@ const Page = () => {
                           fill: '#c9d1d9',
                           fontSize: '1.8rem',
                           fontFamily: 'Plus Jakarta Sans',
-                          fontWeight: 400,
+                          fontWeight: 600,
                           textTransform: 'capitalize',
                         }}
                       >
-                        {data.owner} {data.repo}
+                        {data.owner} / {data.repo}
                       </text>
 
                       <text
