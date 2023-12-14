@@ -129,7 +129,7 @@ const Page = () => {
                   <time className='block text-sm font-medium'>
                     {dateFrom} &bull; {dateNow}{' '}
                   </time>
-                  <small className='text-brand-mid-gray'>{data ? `(${data.dates.diff} days)` : '( days)'}</small>
+                  <small className='block text-brand-mid-gray h-4'>{data ? `(${data.dates.diff} days)` : ''}</small>
                 </div>
                 <Form method='post' className='flex flex-col gap-4'>
                   <input hidden name='dateFrom' defaultValue={dateFrom} />
