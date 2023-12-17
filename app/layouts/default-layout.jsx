@@ -3,7 +3,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
 import Logo from '../components/logo';
 
-import { navLinks } from './nav-links';
+import { navLinks, authLinks } from './nav-links';
 
 const DefaultLayout = ({ supabase, user, session, children }) => {
   const handleSignOut = async () => {
@@ -12,8 +12,8 @@ const DefaultLayout = ({ supabase, user, session, children }) => {
 
   return (
     <>
-      <header className='sticky top-0 z-20 w-full border-b border-b-brand-border bg-brand-surface-0'>
-        <nav className='flex gap-8 max-w-8xl mx-auto px-4 h-[72px]'>
+      <header className='fixed top-0 z-20 w-full border-b border-b-brand-border bg-brand-surface-0'>
+        <nav className='flex gap-2 max-w-8xl mx-auto px-4 h-[72px]'>
           <ul className='flex items-center list-none m-0 p-0'>
             <li className='m-0 p-0'>
               <Link className='flex items-center no-underline' to='/' aria-current='page'>
@@ -26,7 +26,7 @@ const DefaultLayout = ({ supabase, user, session, children }) => {
               const { to, text } = link;
 
               return (
-                <li key={index} className='mt-2'>
+                <li key={index} className='ml-0 mt-2 p-0'>
                   <Link
                     to={to}
                     className='no-underline px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-1'
@@ -100,10 +100,10 @@ const DefaultLayout = ({ supabase, user, session, children }) => {
                       <DropdownMenu.Item asChild>
                         <button
                           aria-label='Sign out'
-                          className='flex items-center justify-center border border-brand-border text-brand-text w-full rounded p-2'
+                          className='flex items-center justify-center border-2 border-brand-pink  w-full rounded p-2 transition-all duration-300 hover:brightness-125'
                           onClick={handleSignOut}
                         >
-                          <span className='text-sm font-medium'>Sign out</span>
+                          <span className='text-sm font-medium text-brand-pink'>Sign out</span>
                         </button>
                       </DropdownMenu.Item>
                     </DropdownMenu.Content>
@@ -114,8 +114,7 @@ const DefaultLayout = ({ supabase, user, session, children }) => {
           ) : null}
         </nav>
       </header>
-
-      <div className='p-4 mx-auto max-w-8xl h-[calc(100vh-70px)] min-h-full'>{children}</div>
+      <div className='relative top-[72px] p-4 mx-auto max-w-8xl h-[calc(100vh-70px)] min-h-full'>{children}</div>
     </>
   );
 };

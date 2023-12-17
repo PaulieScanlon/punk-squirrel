@@ -7,7 +7,11 @@ import { gsap } from 'gsap';
 import * as DOMPurify from 'dompurify';
 
 import AppLayout from '../../layouts/app-layout';
+import DatePicker from '../../components/date-picker';
+import Select from '../../components/select';
 import ErrorAnnounce from '../../components/error-announce';
+import Loading from '../../components/loading';
+import PlayerControls from '../../components/player-controls';
 
 import { supabaseServer } from '../../supabase.server';
 
@@ -18,7 +22,7 @@ import { updateDateCount } from '../../utils/update-date-count';
 import { formatDate } from '../../utils/format-date';
 import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
-import PlayerControls from '../../components/player-controls';
+import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
 
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
@@ -47,7 +51,7 @@ export const action = async ({ request }) => {
   const ratio = body.get('ratio');
   const dateFrom = body.get('dateFrom');
   const dateNow = body.get('dateNow');
-  const dateDiff = Math.round((new Date(dateNow) - new Date(dateFrom)) / (1000 * 60 * 60 * 24));
+  const dateDiff = body.get('dateDiff');
 
   const chartWidth = ratio;
   const chartHeight = 1080;
@@ -63,8 +67,8 @@ export const action = async ({ request }) => {
     repo,
     state,
     dates: {
-      from: dateFrom,
-      to: dateNow,
+      from: formatDate(dateFrom),
+      to: formatDate(dateNow),
       diff: dateDiff,
     },
     config: {
@@ -81,7 +85,8 @@ export const action = async ({ request }) => {
 
   try {
     // https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28
-    const response = await octokit.request('GET /repos/{owner}/{repo}/issues', {
+    // https://docs.github.com/en/enterprise-server@3.6/rest/guides/using-pagination-in-the-rest-api#example-using-the-octokitjs-pagination-method
+    const response = await octokit.paginate('GET /repos/{owner}/{repo}/issues', {
       owner: owner,
       repo: repo,
       per_page: 100,
@@ -94,7 +99,7 @@ export const action = async ({ request }) => {
       },
     });
 
-    const { dateRange } = updateDateCount(response.data, generateDateArray(dateDiff));
+    const { dateRange } = updateDateCount(response, generateDateArray(dateDiff));
 
     const maxValue = findMaxValue(dateRange, 'count');
     const total = findTotalValue(dateRange, 'count');
@@ -104,7 +109,7 @@ export const action = async ({ request }) => {
       ...defaultResponse,
       response: {
         status: 200,
-        message: !response.data.length ? 'No Data' : '',
+        message: !response.length ? 'No Data' : '',
       },
       maxValue,
       total,
@@ -170,6 +175,12 @@ const Page = () => {
     ratio: 1920,
   });
 
+  const [dates, setDates] = useState({
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    to: new Date(),
+    diff: 30,
+  });
+
   const tl = useMemo(
     () =>
       gsap.timeline({
@@ -195,9 +206,6 @@ const Page = () => {
     []
   );
 
-  const dateFrom = formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
-  const dateNow = formatDate(new Date());
-
   let tempAnimationFrames = [];
 
   const updateProgress = () => {
@@ -209,8 +217,9 @@ const Page = () => {
     const chartMask = chartMaskRef.current;
 
     if (data !== undefined && data.response.status === 200 && state === 'idle') {
-      const duration = 6;
-      const stagger = duration / data.points.length;
+      const duration = calculateAnimationDuration(dates.diff);
+      const stagger = duration / dates.diff;
+
       tl.play();
       tl.to(chartMask, { duration: duration, width: data.config.chartWidth, ease: 'linear' });
       tl.to('#total', { duration: duration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' }, '<');
@@ -219,7 +228,11 @@ const Page = () => {
         { duration: 0.3, transform: 'translateY(0px)', opacity: 1, stagger: stagger, ease: 'linear' },
         '<'
       );
-      tl.to('.date', { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: 0.16, ease: 'linear' }, '<');
+      tl.to(
+        '.date',
+        { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: stagger, ease: 'linear' },
+        '<'
+      );
 
       setInterfaceState((prevState) => ({
         ...prevState,
@@ -313,12 +326,28 @@ const Page = () => {
     createRasterizedImage();
   };
 
-  const handleRatio = (event) => {
+  const handleRatio = (value) => {
     revalidator.revalidate();
     setInterfaceState((prevState) => ({
       ...prevState,
       animation: 'idle',
-      ratio: event.target.value,
+      ratio: value,
+    }));
+  };
+
+  const handleDate = (value) => {
+    setDates((prevState) => ({
+      ...prevState,
+      to: new Date(value),
+      from: new Date(new Date(value) - dates.diff * 24 * 60 * 60 * 1000),
+    }));
+  };
+
+  const handlePeriod = (value) => {
+    setDates((prevState) => ({
+      ...prevState,
+      from: new Date(new Date(dates.to) - value * 24 * 60 * 60 * 1000),
+      diff: value,
     }));
   };
 
@@ -330,13 +359,14 @@ const Page = () => {
     setIsNavOpen(!isNavOpen);
   };
 
+  const isDisabled = (state !== 'idle' && interfaceState.animation !== 'idle') || interfaceState.rendering;
+
   return (
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <section>
-          {/* <pre>{JSON.stringify(interfaceState, null, 2)}</pre> */}
           <div className='flex mr-60'>
-            <div className={`flex flex-col gap-4 grow mx-auto ${interfaceState.ratio === '1080' ? 'max-w-lg' : ''}`}>
+            <div className={`flex flex-col gap-4 grow mx-auto ${interfaceState.ratio === 1080 ? 'max-w-lg' : ''}`}>
               <svg
                 ref={chartSvgRef}
                 xmlns='http://www.w3.org/2000/svg'
@@ -633,71 +663,79 @@ const Page = () => {
                 </div>
               </div>
             </div>
-            <div className='fixed bg-brand-surface-1 w-60 h-screen top-0 right-0 border-l border-l-brand-border'>
-              <div className='flex flex-col gap-4 px-4 pt-24'>
+            <div className='fixed bg-brand-surface-1 w-60 h-screen top-0 right-0 border-l border-l-brand-border overflow-auto'>
+              <div className='flex flex-col gap-4 px-4 pt-24 pb-8'>
                 <div>
                   <h1 className='mb-0 text-2xl'>Issues</h1>
                   <time className='block text-sm font-medium'>
-                    {dateFrom} &bull; {dateNow}{' '}
+                    {formatDate(dates.from)} &bull; {formatDate(dates.to)}{' '}
                   </time>
-                  <small className='block text-brand-mid-gray h-4'>{data ? `(${data.dates.diff} days)` : ''}</small>
                 </div>
-                <Form method='post' className='flex flex-col gap-4'>
-                  <input hidden name='dateFrom' defaultValue={dateFrom} />
-                  <input hidden name='dateNow' defaultValue={dateNow} />
+                <Form method='post' className='flex flex-col gap-4' autoComplete='off'>
+                  <input hidden name='dateFrom' defaultValue={dates.from} />
+                  <input hidden name='dateNow' defaultValue={dates.to} />
+                  <input hidden name='dateDiff' defaultValue={dates.diff} />
                   <div className='flex flex-col gap-2'>
+                    <DatePicker label='End Date' name='to' onChange={handleDate} disabled={isDisabled} />
+
+                    <Select
+                      label='Period'
+                      name='from'
+                      placeholder='Select a period'
+                      onChange={handlePeriod}
+                      disabled={isDisabled}
+                      items={[
+                        { name: '30 Days', value: 30 },
+                        { name: '14 Days', value: 14 },
+                        { name: '7 Days', value: 7 },
+                      ]}
+                    />
+
                     <label>
                       Owner
-                      <input
-                        type='text'
-                        defaultValue=''
-                        placeholder='remix-run'
-                        name='owner'
-                        disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
-                      />
+                      <input type='text' defaultValue='' name='owner' disabled={isDisabled} required />
                     </label>
                     <label>
                       Repository
-                      <input
-                        type='text'
-                        defaultValue=''
-                        placeholder='remix'
-                        name='repo'
-                        disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
-                      />
+                      <input type='text' defaultValue='' name='repo' disabled={isDisabled} required />
                     </label>
-                    <label>
-                      State
-                      <select
-                        name='state'
-                        onChange={handleState}
-                        disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
-                      >
-                        <option defaultChecked>open</option>
-                        <option>closed</option>
-                      </select>
-                    </label>
-                    <label>
-                      Ratio
-                      <select
-                        name='ratio'
-                        onChange={handleRatio}
-                        disabled={interfaceState.animation !== 'idle' || interfaceState.rendering}
-                      >
-                        <option defaultChecked value={1920}>
-                          16:9
-                        </option>
-                        <option value={1080}>1:1</option>
-                      </select>
-                    </label>
+
+                    <Select
+                      label='State'
+                      name='state'
+                      placeholder='Select a state'
+                      onChange={handleState}
+                      disabled={isDisabled}
+                      items={[
+                        { name: 'open', value: 'open' },
+                        { name: 'closed', value: 'closed' },
+                      ]}
+                    />
+
+                    <Select
+                      label='Ratio'
+                      name='ratio'
+                      placeholder='Select a ratio'
+                      onChange={handleRatio}
+                      disabled={isDisabled}
+                      items={[
+                        { name: '16:9', value: 1920 },
+                        { name: '1:1', value: 1080 },
+                      ]}
+                    />
                   </div>
                   <ErrorAnnounce message={data?.response.message} />
                   <button
                     type='submit'
-                    className='inline-flex justify-center items-center px-3 py-2 rounded bg-brand-pink enabled:hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray'
-                    disabled={state !== 'idle' || interfaceState.animation !== 'idle' || interfaceState.rendering}
+                    className='inline-flex justify-center items-center px-3 py-2 rounded bg-brand-pink enabled:hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray h-8'
+                    disabled={
+                      state !== 'idle' ||
+                      state !== 'idle' ||
+                      interfaceState.animation !== 'idle' ||
+                      interfaceState.rendering
+                    }
                   >
-                    Submit
+                    {state === 'submitting' ? <Loading /> : 'Submit'}
                   </button>
                 </Form>
               </div>

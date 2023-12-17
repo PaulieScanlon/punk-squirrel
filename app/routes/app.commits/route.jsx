@@ -50,12 +50,19 @@ export const action = async ({ request }) => {
 
   try {
     // https://docs.github.com/en/rest/activity/events?apiVersion=2022-11-28#list-public-events-for-a-user
-    const response = await octokit.request('GET /users/{username}/events/public', {
+
+    // const test = await octokit.paginate()
+    // https://docs.github.com/en/rest/activity/events?apiVersion=2022-11-28#list-events-for-the-authenticated-user
+    const response = await octokit.request('GET /users/{username}/events', {
       username: username,
+      per_page: 100,
       headers: {
         'X-GitHub-Api-Version': '2022-11-28',
       },
     });
+
+    console.log('start: ', formatDate(response.data[response.data.length - 1].created_at));
+    console.log('end: ', formatDate(response.data[0].created_at));
 
     return json({
       ...defaultResponse,
@@ -63,7 +70,8 @@ export const action = async ({ request }) => {
         status: 200,
         message: !response.data.length ? 'No Data' : '',
       },
-      data: response.data,
+      data: response.data.length,
+      link: response.headers.link,
     });
   } catch (error) {
     return json({

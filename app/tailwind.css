@@ -13,6 +13,13 @@
   select:-webkit-autofill:hover,
   select:-webkit-autofill:focus {
     -webkit-text-fill-color: #f0f6fc;
-    -webkit-box-shadow: 0 0 0px 1000px #010409 inset;
+    -webkit-box-shadow: 0 0 0px 1000px #0d1117 inset;
+  }
+
+  input:-webkit-autofill:disabled,
+  textarea:-webkit-autofill:disabled,
+  select:-webkit-autofill:disabled {
+    -webkit-text-fill-color: #7d8590;
+    -webkit-box-shadow: 0 0 0px 1000px #0d1117 inset;
   }
 }

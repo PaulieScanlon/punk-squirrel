@@ -38,14 +38,15 @@ export default {
             '*:not(strong)': {
               fontWeight: 300,
             },
-            label: {
+            'label, .label': {
+              position: 'relative',
               '& :first-child': {
                 display: 'block',
               },
               color: theme('colors.brand.mid-gray'),
               fontSize: '0.75rem',
             },
-            'input, textarea, select': {
+            'input, .input, textarea, select': {
               padding: '0.4rem 0.6rem',
               borderWidth: '1px',
               borderStyle: 'solid',
@@ -56,6 +57,7 @@ export default {
               width: '100%',
               '&:disabled': {
                 color: theme('colors.brand.mid-gray'),
+                background: theme('colors.brand.surface-0'),
               },
             },
             'h1, h2, h3, h4, h5, h6': {
@@ -86,5 +88,5 @@ export default {
       }),
     },
   },
-  plugins: [require('@tailwindcss/typography')],
+  plugins: [require('@tailwindcss/typography'), require('tailwindcss-animate')],
 };

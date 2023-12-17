@@ -7,7 +7,7 @@ import { appLinks, accountLinks } from './app-links';
 const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
   return (
     <>
-      <header className='sticky top-0 z-20 w-full border-b border-b-brand-border bg-brand-surface-0'>
+      <header className='fixed top-0 z-20 w-full border-b border-b-brand-border bg-brand-surface-0'>
         <nav className='flex px-4 h-[72px]'>
           <Link className='flex items-center no-underline' to='/' aria-current='page'>
             <Logo />
@@ -35,7 +35,7 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
         </nav>
       </header>
 
-      <div className='relative'>
+      <div className='relative top-[72px]'>
         <div
           id='sidebar'
           className={`fixed top-0 ${

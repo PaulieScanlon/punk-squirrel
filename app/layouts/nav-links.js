@@ -9,7 +9,7 @@ export const navLinks = [
   },
 ];
 
-const authLinks = [
+export const authLinks = [
   {
     to: '/app',
     text: 'Dashboard',
