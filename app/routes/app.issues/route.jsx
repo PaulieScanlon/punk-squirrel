@@ -23,6 +23,7 @@ import { formatDate } from '../../utils/format-date';
 import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
 import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
+import { createLegendRange } from '../../utils/create-legend-range';
 
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
@@ -57,7 +58,8 @@ export const action = async ({ request }) => {
   const chartHeight = 1080;
   const offsetY = 220;
   const _chartHeight = chartHeight - offsetY;
-  const paddingX = 150;
+  const paddingL = 110;
+  const paddingR = 75;
   const paddingY = 340;
   const guides = [...Array(8).keys()];
 
@@ -76,7 +78,8 @@ export const action = async ({ request }) => {
       chartHeight,
       _chartHeight,
       offsetY,
-      paddingX,
+      paddingR,
+      paddingL,
       paddingY,
       guides,
       color: state === 'open' ? '#3fb950' : '#f85149',
@@ -103,7 +106,7 @@ export const action = async ({ request }) => {
 
     const maxValue = findMaxValue(dateRange, 'count');
     const total = findTotalValue(dateRange, 'count');
-    const properties = createProperties(dateRange, chartWidth, _chartHeight, maxValue, paddingX, paddingY);
+    const properties = createProperties(dateRange, chartWidth, _chartHeight, maxValue, paddingR, paddingL, paddingY);
 
     return json({
       ...defaultResponse,
@@ -113,7 +116,8 @@ export const action = async ({ request }) => {
       },
       maxValue,
       total,
-      ticks: createTicks(dateRange, chartWidth, _chartHeight, paddingX),
+      ticks: createTicks(dateRange, chartWidth, _chartHeight, paddingR, paddingL),
+      legend: createLegendRange(dateRange, guides.length, 'count'),
       properties: properties,
       points: createPoints(properties),
       fills: createFills(properties, _chartHeight),
@@ -178,7 +182,7 @@ const Page = () => {
   const [dates, setDates] = useState({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date(),
-    diff: 30,
+    diff: 7,
   });
 
   const tl = useMemo(
@@ -383,6 +387,37 @@ const Page = () => {
                       </clipPath>
                     </defs>
 
+                    {data.legend.map((value, index) => {
+                      const ratio = index / (data.legend.length - 1);
+                      const y = (data.config._chartHeight - data.config.paddingY) * ratio + 10;
+                      return (
+                        <text
+                          key={index}
+                          x={data.config.paddingL - 50}
+                          y={y + data.config.paddingY}
+                          textAnchor='end'
+                          style={{
+                            fill: '#7d8590',
+                            fontSize: '1.2rem',
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {value}
+                        </text>
+                      );
+                    })}
+
+                    <rect
+                      width={1}
+                      height={data.config._chartHeight - data.config.paddingY}
+                      x={data.config.paddingL - 20}
+                      y={data.config.paddingY}
+                      style={{
+                        fill: '#272e36',
+                      }}
+                    />
+
                     {data.config.guides.map((_, index) => {
                       const ratio = index / data.config.guides.length;
                       const y = (data.config._chartHeight - data.config.paddingY) * ratio;
@@ -390,8 +425,8 @@ const Page = () => {
                       return (
                         <polyline
                           key={index}
-                          points={`${data.config.paddingX / 2},${y + data.config.paddingY}, ${
-                            data.config.chartWidth - data.config.paddingX / 2
+                          points={`${data.config.paddingL},${y + data.config.paddingY}, ${
+                            data.config.chartWidth - data.config.paddingR / 2
                           }, ${y + data.config.paddingY}`}
                           style={{
                             fill: 'none',
@@ -404,7 +439,7 @@ const Page = () => {
 
                     <g>
                       <rect
-                        x={data.config.paddingX / 2}
+                        x={data.config.paddingR / 2}
                         y={75}
                         width={120}
                         height={40}
@@ -418,7 +453,7 @@ const Page = () => {
                         }}
                       />
                       <text
-                        x={data.config.paddingX / 2 + 59}
+                        x={data.config.paddingR / 2 + 59}
                         y={103}
                         textAnchor='middle'
                         style={{
@@ -433,7 +468,7 @@ const Page = () => {
                       </text>
 
                       <text
-                        x={data.config.paddingX / 2}
+                        x={data.config.paddingR / 2}
                         y={190}
                         style={{
                           fill: '#f0f6fc',
@@ -446,7 +481,7 @@ const Page = () => {
                         {data.title}
                       </text>
                       <text
-                        x={data.config.paddingX / 2}
+                        x={data.config.paddingR / 2}
                         y={238}
                         style={{
                           fill: '#c9d1d9',
@@ -461,7 +496,7 @@ const Page = () => {
 
                       <text
                         id='total'
-                        x={data.config.chartWidth - data.config.paddingX / 2}
+                        x={data.config.chartWidth - data.config.paddingR / 2}
                         y={188}
                         textAnchor='end'
                         style={{
@@ -474,7 +509,7 @@ const Page = () => {
                         0
                       </text>
                       <text
-                        x={data.config.chartWidth - data.config.paddingX / 2 - 140}
+                        x={data.config.chartWidth - data.config.paddingR / 2 - 140}
                         y={238}
                         textAnchor='end'
                         style={{
@@ -488,7 +523,7 @@ const Page = () => {
                         {data.dates.from} {data.dates.to}
                       </text>
                       <text
-                        x={data.config.chartWidth - data.config.paddingX / 2}
+                        x={data.config.chartWidth - data.config.paddingR / 2}
                         y={238}
                         textAnchor='end'
                         style={{
@@ -524,48 +559,6 @@ const Page = () => {
                         }}
                       />
 
-                      {data.properties.map((property, index) => {
-                        const { x, y, count } = property;
-                        return (
-                          <g
-                            key={index}
-                            className='value'
-                            style={{
-                              opacity: 0,
-                              transform: 'translateY(20px)',
-                            }}
-                          >
-                            {count > 0 ? (
-                              <>
-                                <circle
-                                  cx={x}
-                                  cy={y - 10}
-                                  r={20}
-                                  style={{
-                                    fill: '#161b22',
-                                    stroke: data.config.color,
-                                    strokeWidth: 3,
-                                  }}
-                                />
-                                <text
-                                  x={x}
-                                  y={y - 2}
-                                  textAnchor='middle'
-                                  style={{
-                                    fill: data.config.color,
-                                    fontSize: '1.2rem',
-                                    fontFamily: 'Plus Jakarta Sans',
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  {count}
-                                </text>
-                              </>
-                            ) : null}
-                          </g>
-                        );
-                      })}
-
                       {data.ticks.map((tick, index) => {
                         const { date, x, y } = tick;
 
@@ -583,7 +576,7 @@ const Page = () => {
                               y={y}
                               textAnchor='middle'
                               style={{
-                                fill: '#464d55',
+                                fill: '#7d8590',
                                 fontSize: '1.2rem',
                                 fontFamily: 'Plus Jakarta Sans',
                                 fontWeight: 600,
@@ -602,7 +595,7 @@ const Page = () => {
                       y={data.config.chartHeight - 55}
                       textAnchor='middle'
                       style={{
-                        fill: '#7d8590',
+                        fill: '#f0f6fc',
                         fontSize: '1.4rem',
                         fontFamily: 'Plus Jakarta Sans',
                         fontWeight: 600,
@@ -685,9 +678,9 @@ const Page = () => {
                       onChange={handlePeriod}
                       disabled={isDisabled}
                       items={[
-                        { name: '30 Days', value: 30 },
-                        { name: '14 Days', value: 14 },
                         { name: '7 Days', value: 7 },
+                        { name: '14 Days', value: 14 },
+                        { name: '30 Days', value: 30 },
                       ]}
                     />
 

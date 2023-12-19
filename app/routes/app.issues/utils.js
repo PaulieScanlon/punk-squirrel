@@ -1,17 +1,17 @@
 import { formatTick } from '../../utils/format-tick';
 
-export const createProperties = (array, chartWidth, _chartHeight, maxValue, paddingX, paddingY) => {
+export const createProperties = (array, chartWidth, _chartHeight, maxValue, paddingR, paddingL, paddingY) => {
   return array.map((entry, index) => {
     const { count } = entry;
 
     const x_ratio = index / (array.length - 1);
     const y_ratio = count / maxValue;
-    const x = x_ratio * (chartWidth - paddingX) + paddingX / 2;
+    const x = x_ratio * (chartWidth - paddingR - paddingL);
     const y = _chartHeight - y_ratio * (_chartHeight - paddingY);
 
     return {
       count,
-      x,
+      x: x + paddingL,
       y,
     };
   });
@@ -38,17 +38,17 @@ export const createFills = (array, _chartHeight) => {
   return [starValues, dataArray, endValues].toString();
 };
 
-export const createTicks = (array, chartWidth, _chartHeight, paddingX) => {
+export const createTicks = (array, chartWidth, _chartHeight, paddingR, paddingL) => {
   return array.map((tick, index) => {
     const { date } = tick;
 
     const x_ratio = index / (array.length - 1);
-    const x = x_ratio * (chartWidth - paddingX) + paddingX / 2;
+    const x = x_ratio * (chartWidth - paddingR - paddingL);
     const y = _chartHeight;
 
     return {
       date: formatTick(date),
-      x: x + 20,
+      x: x + 20 + paddingL,
       y: y + 45,
     };
   });
