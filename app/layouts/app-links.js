@@ -7,15 +7,15 @@ export const appLinks = [
     to: '/app/issues',
     text: 'Issues',
   },
-  {
-    to: '/app/commits',
-    text: 'Commits',
-  },
+  // {
+  //   to: '/app/commits',
+  //   text: 'Commits',
+  // },
 ];
 
 export const accountLinks = [
-  {
-    to: '/app/account',
-    text: 'Account',
-  },
+  // {
+  //   to: '/app/account',
+  //   text: 'Account',
+  // },
 ];
