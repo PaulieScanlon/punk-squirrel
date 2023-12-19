@@ -8,13 +8,17 @@ export const appLinks = [
 
     links: [
       {
-        to: '/app/issues',
+        to: '/app/repository/issues',
         text: 'Issues',
+      },
+      {
+        to: '/app/repository/commits',
+        text: 'Commits',
       },
     ],
   },
   // {
-  //   to: '/app/commits',
+  //   to: '/app/user/commits',
   //   text: 'Commits',
   // },
 ];

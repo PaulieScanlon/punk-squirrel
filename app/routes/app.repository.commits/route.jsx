@@ -15,11 +15,13 @@ import PlayerControls from '../../components/player-controls';
 
 import { supabaseServer } from '../../supabase.server';
 
-import { createProperties, createPoints, createFills, createTicks } from './utils';
-
 import { generateDateArray } from '../../utils/generate-date-array';
 import { updateDateCount } from '../../utils/update-date-count';
 import { formatDate } from '../../utils/format-date';
+import { createLineChartProperties } from '../../utils/create-line-chart-properties';
+import { createLineChartPoints } from '../../utils/create-line-chart-points';
+import { createLineChartFills } from '../../utils/create-line-chart-fills';
+import { createTicks } from '../../utils/create-ticks';
 import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
 import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
@@ -64,7 +66,7 @@ export const action = async ({ request }) => {
   const guides = [...Array(8).keys()];
 
   const defaultResponse = {
-    title: 'issues',
+    title: 'commits',
     owner,
     repo,
     state,
@@ -82,35 +84,40 @@ export const action = async ({ request }) => {
       paddingL,
       paddingY,
       guides,
-      color: state === 'open' ? '#3fb950' : '#f85149',
+      color: '#2f81f7',
     },
   };
 
   try {
-    // https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28
-    // https://docs.github.com/en/enterprise-server@3.6/rest/guides/using-pagination-in-the-rest-api#example-using-the-octokitjs-pagination-method
-    const response = await octokit.paginate('GET /repos/{owner}/{repo}/issues', {
+    // https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28
+    const response = await octokit.paginate('GET /repos/{owner}/{repo}/commits', {
       owner: owner,
       repo: repo,
       per_page: 100,
-      sort: 'created',
-      state: state,
-      created: 'created',
       since: dateFrom,
       headers: {
         'X-GitHub-Api-Version': '2022-11-28',
       },
     });
 
-    const { dateRange } = updateDateCount(response, generateDateArray(dateDiff));
+    const { dateRange } = updateDateCount(response, generateDateArray(dateDiff), 'commit.committer.date');
 
     const maxValue = findMaxValue(dateRange, 'count');
     const total = findTotalValue(dateRange, 'count');
-    const properties = createProperties(dateRange, chartWidth, _chartHeight, maxValue, paddingR, paddingL, paddingY);
+    const properties = createLineChartProperties(
+      dateRange,
+      chartWidth,
+      _chartHeight,
+      maxValue,
+      paddingR,
+      paddingL,
+      paddingY
+    );
 
     return json({
       ...defaultResponse,
       response: {
+        raw: response,
         status: 200,
         message: !response.length ? 'No Data' : '',
       },
@@ -119,8 +126,8 @@ export const action = async ({ request }) => {
       ticks: createTicks(dateRange, chartWidth, _chartHeight, paddingR, paddingL),
       legend: createLegendRange(dateRange, guides.length, 'count'),
       properties: properties,
-      points: createPoints(properties),
-      fills: createFills(properties, _chartHeight),
+      points: createLineChartPoints(properties),
+      fills: createLineChartFills(properties, _chartHeight),
       data: dateRange,
     });
   } catch (error) {
@@ -227,11 +234,6 @@ const Page = () => {
       tl.play();
       tl.to(chartMask, { duration: duration, width: data.config.chartWidth, ease: 'linear' });
       tl.to('#total', { duration: duration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' }, '<');
-      tl.to(
-        '.value',
-        { duration: 0.3, transform: 'translateY(0px)', opacity: 1, stagger: stagger, ease: 'linear' },
-        '<'
-      );
       tl.to(
         '.date',
         { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: stagger, ease: 'linear' },
@@ -355,10 +357,6 @@ const Page = () => {
     }));
   };
 
-  const handleState = () => {
-    revalidator.revalidate();
-  };
-
   const handleNav = () => {
     setIsNavOpen(!isNavOpen);
   };
@@ -370,6 +368,7 @@ const Page = () => {
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <section>
           <div className='flex mr-60'>
+            {/* {data ? <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> : null} */}
             <div className={`flex flex-col gap-4 grow mx-auto ${interfaceState.ratio === 1080 ? 'max-w-lg' : ''}`}>
               <svg
                 ref={chartSvgRef}
@@ -438,35 +437,6 @@ const Page = () => {
                     })}
 
                     <g>
-                      <rect
-                        x={data.config.paddingR / 2}
-                        y={75}
-                        width={120}
-                        height={40}
-                        rx={18}
-                        ry={18}
-                        style={{
-                          fill: data.config.color,
-                          fillOpacity: 0.2,
-                          strokeWidth: 2,
-                          stroke: data.config.color,
-                        }}
-                      />
-                      <text
-                        x={data.config.paddingR / 2 + 59}
-                        y={103}
-                        textAnchor='middle'
-                        style={{
-                          fill: data.config.color,
-                          fontSize: '1.4rem',
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontWeight: 600,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {data.state}
-                      </text>
-
                       <text
                         x={data.config.paddingR / 2}
                         y={190}
@@ -659,7 +629,7 @@ const Page = () => {
             <div className='fixed bg-brand-surface-1 w-60 h-screen top-0 right-0 border-l border-l-brand-border overflow-auto'>
               <div className='flex flex-col gap-4 px-4 pt-24 pb-8'>
                 <div>
-                  <h1 className='mb-0 text-2xl'>Issues</h1>
+                  <h1 className='mb-0 text-2xl'>Commits</h1>
                   <time className='block text-sm font-medium'>
                     {formatDate(dates.from)} &bull; {formatDate(dates.to)}{' '}
                   </time>
@@ -681,6 +651,7 @@ const Page = () => {
                         { name: '7 Days', value: 7 },
                         { name: '14 Days', value: 14 },
                         { name: '30 Days', value: 30 },
+                        // { name: '60 Days', value: 60 },
                       ]}
                     />
 
@@ -692,18 +663,6 @@ const Page = () => {
                       Repository
                       <input type='text' defaultValue='' name='repo' disabled={isDisabled} required />
                     </label>
-
-                    <Select
-                      label='State'
-                      name='state'
-                      placeholder='Select a state'
-                      onChange={handleState}
-                      disabled={isDisabled}
-                      items={[
-                        { name: 'open', value: 'open' },
-                        { name: 'closed', value: 'closed' },
-                      ]}
-                    />
 
                     <Select
                       label='Ratio'

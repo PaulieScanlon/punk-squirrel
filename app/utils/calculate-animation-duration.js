@@ -1,10 +1,27 @@
 export const calculateAnimationDuration = (itemCount) => {
-  const baseItemCount = 30;
-  const baseDuration = 6;
+  let duration = 0;
 
-  const ratio = itemCount / baseItemCount;
+  switch (itemCount) {
+    case 60:
+      duration = 6;
+      break;
 
-  const adjustedDuration = baseDuration * ratio;
+    case 30:
+      duration = 4;
+      break;
 
-  return adjustedDuration;
+    case 14:
+      duration = 3;
+      break;
+
+    case 7:
+      duration = 2;
+      break;
+
+    default:
+      duration = 2;
+      break;
+  }
+
+  return duration;
 };
