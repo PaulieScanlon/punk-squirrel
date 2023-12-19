@@ -665,9 +665,9 @@ const Page = () => {
                   </time>
                 </div>
                 <Form method='post' className='flex flex-col gap-4' autoComplete='off'>
-                  <input hidden name='dateFrom' defaultValue={dates.from} />
-                  <input hidden name='dateNow' defaultValue={dates.to} />
-                  <input hidden name='dateDiff' defaultValue={dates.diff} />
+                  <input hidden name='dateFrom' readOnly value={dates.from} />
+                  <input hidden name='dateNow' readOnly value={dates.to} />
+                  <input hidden name='dateDiff' readOnly value={dates.diff} />
                   <div className='flex flex-col gap-2'>
                     <DatePicker label='End Date' name='to' onChange={handleDate} disabled={isDisabled} />
 
