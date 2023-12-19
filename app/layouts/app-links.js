@@ -4,8 +4,14 @@ export const appLinks = [
     text: 'Dashboard',
   },
   {
-    to: '/app/issues',
-    text: 'Issues',
+    text: 'Repository',
+
+    links: [
+      {
+        to: '/app/issues',
+        text: 'Issues',
+      },
+    ],
   },
   // {
   //   to: '/app/commits',

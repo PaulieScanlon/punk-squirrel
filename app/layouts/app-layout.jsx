@@ -49,18 +49,41 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
             <div className='flex flex-col grow pt-8'>
               <ul className='list-none m-0 p-0 grow'>
                 {appLinks.map((link, index) => {
-                  const { to, text } = link;
+                  const { to, text, links } = link;
 
-                  return (
-                    <li key={index} className='p-0 m-0'>
-                      <Link
-                        to={to}
-                        className='flex no-underline px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-2'
-                      >
-                        {text}
-                      </Link>
-                    </li>
-                  );
+                  if (links) {
+                    return (
+                      <li key={index} className='p-0 m-0'>
+                        <span className='flex text-base px-3 py-2 text-brand-light-gray'>{text}</span>
+                        <ul className='list-none m-0 ml-2 p-0'>
+                          {links.map((link, index) => {
+                            const { to, text } = link;
+                            return (
+                              <li className='m-0 p-0' key={index}>
+                                <Link
+                                  to={to}
+                                  className='flex no-underline px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-2 font-medium'
+                                >
+                                  {text}
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </li>
+                    );
+                  } else {
+                    return (
+                      <li key={index} className='p-0 m-0'>
+                        <Link
+                          to={to}
+                          className='flex no-underline px-3 py-2 rounded transition-colors duration-300 hover:bg-brand-surface-2 font-medium'
+                        >
+                          {text}
+                        </Link>
+                      </li>
+                    );
+                  }
                 })}
               </ul>
               <ul className='list-none m-0 p-0'>
