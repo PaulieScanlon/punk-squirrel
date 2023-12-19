@@ -87,6 +87,26 @@ export default function App() {
         <title>Punk Squirrel</title>
         <meta charSet='utf-8' />
         <meta name='viewport' content='width=device-width, initial-scale=1' />
+
+        <meta name='title' content='Punk Squirrel' />
+        <meta name='description' content='GitHub Statistical Analysis - and more' />
+
+        {/* Open Graph / Facebook */}
+        <meta property='og:type' content='website' />
+        <meta property='og:url' content='https://punksquirrel.app/' />
+        <meta property='og:title' content='Punk Squirrel' />
+        <meta property='og:description' content='GitHub Statistical Analysis - and more' />
+        <meta property='og:image' content='https://punksquirrel.app/images/punk-squirrel-og-image.jpg' />
+
+        {/* <Twitter */}
+        <meta property='twitter:card' content='summary_large_image' />
+        <meta property='twitter:url' content='https://punksquirrel.app/' />
+        <meta property='twitter:title' content='Punk Squirrel' />
+        <meta property='twitter:description' content='GitHub Statistical Analysis - and more' />
+        <meta property='twitter:image' content='https://punksquirrel.app/images/punk-squirrel-og-image.jpg' />
+
+        <link rel='icon' type='image/x-icon' href='/favicon.ico' />
+
         <Links />
       </head>
       <body className='prose max-w-none bg-brand-background'>
