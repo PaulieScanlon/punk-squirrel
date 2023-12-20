@@ -18,6 +18,7 @@ export default {
           'punk-pink': '#f21cca',
           'light-gray': '#c9d1d9',
           'mid-gray': '#7d8590',
+          'base-gray': '#49525e',
           'dark-gray': '#30363d',
           'guide-gray': '#353c44',
           border: '#21262d',

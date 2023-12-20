@@ -569,7 +569,7 @@ const Page = () => {
                       />
 
                       {data.ticks.map((tick, index) => {
-                        const { date, x, y } = tick;
+                        const { date, x, y, weekend } = tick;
 
                         return (
                           <g
@@ -585,7 +585,7 @@ const Page = () => {
                               y={y}
                               textAnchor='middle'
                               style={{
-                                fill: '#7d8590',
+                                fill: weekend ? '#49525e' : '#7d8590',
                                 fontSize: '1.2rem',
                                 fontFamily: 'Plus Jakarta Sans',
                                 fontWeight: 600,
