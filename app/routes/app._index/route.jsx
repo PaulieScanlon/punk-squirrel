@@ -88,21 +88,6 @@ const Page = () => {
               </div>
             </div>
           </div>
-          {/* <pre className='text-xx'>{JSON.stringify(ghUser, null, 2)}</pre> */}
-
-          {/* <div className='grid md:grid-cols-2 gap-4'>
-            <div>
-              <h2>Session</h2>
-              <pre className='text-xx'>{JSON.stringify(session, null, 2)}</pre>
-            </div>
-            <div>
-              <h2>User</h2>
-              <pre className='text-xx'>{JSON.stringify(user, null, 2)}</pre>
-            </div>
-          </div> */}
-
-          {/* <h2>GitHub Username Events</h2>
-          <pre>{JSON.stringify(events.data, null, 2)}</pre> */}
         </section>
       </AppLayout>
     </>

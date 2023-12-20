@@ -53,7 +53,7 @@ export const action = async ({ request }) => {
   const state = body.get('state');
   const ratio = body.get('ratio');
   const dateFrom = body.get('dateFrom');
-  const dateNow = body.get('dateNow');
+  const dateTo = body.get('dateTo');
   const dateDiff = body.get('dateDiff');
 
   const chartWidth = ratio;
@@ -72,7 +72,7 @@ export const action = async ({ request }) => {
     state,
     dates: {
       from: formatDate(dateFrom),
-      to: formatDate(dateNow),
+      to: formatDate(dateTo),
       diff: dateDiff,
     },
     config: {
@@ -88,6 +88,8 @@ export const action = async ({ request }) => {
     },
   };
 
+  console.log('defaultResponse.dates: ', defaultResponse.dates);
+
   try {
     // https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28
     const response = await octokit.paginate('GET /repos/{owner}/{repo}/commits', {
@@ -100,7 +102,7 @@ export const action = async ({ request }) => {
       },
     });
 
-    const { dateRange } = updateDateCount(response, generateDateArray(dateDiff), 'commit.committer.date');
+    const { dateRange } = updateDateCount(response, generateDateArray(dateFrom, dateDiff), 'commit.committer.date');
 
     const maxValue = findMaxValue(dateRange, 'count');
     const total = findTotalValue(dateRange, 'count');
@@ -186,10 +188,13 @@ const Page = () => {
     ratio: 1920,
   });
 
+  const dateFrom = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
+  const dateTo = new Date();
+
   const [dates, setDates] = useState({
-    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    to: new Date(),
-    diff: 7,
+    from: dateFrom,
+    to: dateTo,
+    diff: Math.ceil((dateTo - dateFrom) / (24 * 60 * 60 * 1000)),
   });
 
   const tl = useMemo(
@@ -636,7 +641,7 @@ const Page = () => {
                 </div>
                 <Form method='post' className='flex flex-col gap-4' autoComplete='off'>
                   <input hidden name='dateFrom' readOnly value={dates.from} />
-                  <input hidden name='dateNow' readOnly value={dates.to} />
+                  <input hidden name='dateTo' readOnly value={dates.to} />
                   <input hidden name='dateDiff' readOnly value={dates.diff} />
                   <div className='flex flex-col gap-2'>
                     <DatePicker label='End Date' name='to' onChange={handleDate} disabled={isDisabled} />
