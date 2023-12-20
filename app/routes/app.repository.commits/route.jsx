@@ -84,11 +84,9 @@ export const action = async ({ request }) => {
       paddingL,
       paddingY,
       guides,
-      color: '#2f81f7',
+      color: '#7c72ff',
     },
   };
-
-  console.log('defaultResponse.dates: ', defaultResponse.dates);
 
   try {
     // https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28
@@ -518,7 +516,7 @@ const Page = () => {
                         clipPath='url(#clip-mask)'
                         points={data.fills}
                         style={{
-                          fill: data.config.color,
+                          fill: '#7c72ff',
                           fillOpacity: 0.1,
                           stroke: 'none',
                         }}
