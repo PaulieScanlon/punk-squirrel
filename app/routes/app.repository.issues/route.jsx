@@ -518,7 +518,7 @@ const Page = () => {
                         0
                       </text>
                       <text
-                        x={data.config.chartWidth - data.config.paddingR / 2 - 140}
+                        x={data.config.chartWidth - data.config.paddingR / 2 - 150}
                         y={238}
                         textAnchor='end'
                         style={{
@@ -690,7 +690,10 @@ const Page = () => {
                         { name: '7 Days', value: 7 },
                         { name: '14 Days', value: 14 },
                         { name: '30 Days', value: 30 },
-                        // { name: '60 Days', value: 60 },
+                        { name: '60 Days', value: 60 },
+                        { name: '90 Days', value: 90 },
+                        { name: '180 Days', value: 180 },
+                        { name: '360 Days', value: 360 },
                       ]}
                     />
 

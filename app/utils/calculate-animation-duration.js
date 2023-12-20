@@ -2,6 +2,18 @@ export const calculateAnimationDuration = (itemCount) => {
   let duration = 0;
 
   switch (itemCount) {
+    case 360:
+      duration = 12;
+      break;
+
+    case 180:
+      duration = 10;
+      break;
+
+    case 90:
+      duration = 8;
+      break;
+
     case 60:
       duration = 6;
       break;

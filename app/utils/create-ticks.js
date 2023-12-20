@@ -1,17 +1,26 @@
 import { formatTick } from './format-tick';
 
 export const createTicks = (array, chartWidth, _chartHeight, paddingR, paddingL) => {
-  return array.map((tick, index) => {
-    const { date } = tick;
+  const totalTicks = Math.min(array.length, 30);
 
-    const x_ratio = index / (array.length - 1);
-    const x = x_ratio * (chartWidth - paddingR - paddingL);
-    const y = _chartHeight;
+  return array
+    .filter((_, index) => {
+      if (totalTicks === 1) {
+        return index === 0 || index === array.length - 1;
+      }
+      return index % Math.floor(array.length / (totalTicks - 1)) === 0;
+    })
+    .map((tick, index) => {
+      const { date } = tick;
 
-    return {
-      date: formatTick(date),
-      x: x + 20 + paddingL,
-      y: y + 45,
-    };
-  });
+      const x_ratio = index / (totalTicks - 1);
+      const x = x_ratio * (chartWidth - paddingR * 2 - paddingL);
+      const y = _chartHeight;
+
+      return {
+        date: formatTick(date),
+        x: x + 45 + paddingL,
+        y: y + 45,
+      };
+    });
 };
