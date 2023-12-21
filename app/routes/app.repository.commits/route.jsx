@@ -21,6 +21,8 @@ import VerticalLegend from '../../charts/vertical-legend';
 import HorizontalGuides from '../../charts/horizontal-guides';
 import LineChartPolyline from '../../charts/line-chart-polyline';
 import Watermark from '../../charts/watermark';
+import MainCanvas from '../../charts/main-canvas';
+import MainRender from '../../charts/main-render';
 
 import { supabaseServer } from '../../supabase.server';
 
@@ -425,17 +427,11 @@ const Page = () => {
               </MainSvg>
 
               {data && state === 'idle' ? (
-                <>
-                  <canvas
-                    ref={chartCanvasRef}
-                    className='hidden'
-                    width={data.config.chartWidth}
-                    height={data.config.chartHeight}
-                    style={{
-                      background: '#0d1117',
-                    }}
-                  />
-                </>
+                <MainCanvas
+                  ref={chartCanvasRef}
+                  chartWidth={data.config.chartWidth}
+                  chartHeight={data.config.chartHeight}
+                />
               ) : null}
               <PlayerControls
                 isPlaying={interfaceState.animation != 'idle'}
@@ -452,26 +448,18 @@ const Page = () => {
                   } rounded-full h-1 w-0 transition-all duration-100`}
                 />
               </PlayerControls>
-              <div className='flex items-center justify-between bg-brand-surface-0 p-2'>
-                <small ref={renderMessageRef} className='text-xs text-brand-text'></small>
-                <div className='flex gap-4'>
-                  <button
-                    type='button'
-                    className='inline-flex items-center px-3 py-2 rounded-md bg-brand-blue enabled:hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-1 disabled:text-brand-mid-gray'
-                    onClick={handleRender}
-                    disabled={
-                      data === undefined ||
-                      state !== 'idle' ||
-                      interfaceState.animation !== 'idle' ||
-                      interfaceState.timeline === 0 ||
-                      interfaceState.rendering ||
-                      data.response.status !== 200
-                    }
-                  >
-                    Render
-                  </button>
-                </div>
-              </div>
+              <MainRender
+                ref={renderMessageRef}
+                handleRender={handleRender}
+                isDisabled={
+                  data === undefined ||
+                  state !== 'idle' ||
+                  interfaceState.animation !== 'idle' ||
+                  interfaceState.timeline === 0 ||
+                  interfaceState.rendering ||
+                  data.response.status !== 200
+                }
+              />
             </RatioFrame>
             <div className='fixed bg-brand-surface-1 w-60 h-screen top-0 right-0 border-l border-l-brand-border overflow-auto'>
               <div className='flex flex-col gap-4 px-4 pt-24 pb-8'>
@@ -487,7 +475,6 @@ const Page = () => {
                   <input hidden name='dateDiff' readOnly value={dates.diff} />
                   <div className='flex flex-col gap-2'>
                     <DatePicker label='End Date' name='to' onChange={handleDate} disabled={isDisabled} />
-
                     <Select
                       label='Period'
                       name='from'
