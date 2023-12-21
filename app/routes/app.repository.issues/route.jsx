@@ -15,6 +15,7 @@ import PlayerControls from '../../components/player-controls';
 
 import MainSvg from '../../charts/main-svg';
 import RatioFrame from '../../charts/ratio-frame';
+import ChartHeadingElements from '../../charts/chart-heading-elements';
 import DateTicks from '../../charts/date-ticks';
 import VerticalLegend from '../../charts/vertical-legend';
 import HorizontalGuides from '../../charts/horizontal-guides';
@@ -413,106 +414,16 @@ const Page = () => {
                       paddingY={data.config.paddingY}
                     />
 
-                    <g>
-                      <rect
-                        x={data.config.paddingR / 2}
-                        y={75}
-                        width={120}
-                        height={40}
-                        rx={18}
-                        ry={18}
-                        style={{
-                          fill: data.config.color,
-                          fillOpacity: 0.2,
-                          strokeWidth: 2,
-                          stroke: data.config.color,
-                        }}
-                      />
-                      <text
-                        x={data.config.paddingR / 2 + 59}
-                        y={103}
-                        textAnchor='middle'
-                        style={{
-                          fill: data.config.color,
-                          fontSize: '1.4rem',
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontWeight: 600,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {data.state}
-                      </text>
-
-                      <text
-                        x={data.config.paddingR / 2}
-                        y={190}
-                        style={{
-                          fill: '#f0f6fc',
-                          fontSize: '4rem',
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontWeight: 700,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {data.title}
-                      </text>
-                      <text
-                        x={data.config.paddingR / 2}
-                        y={238}
-                        style={{
-                          fill: '#c9d1d9',
-                          fontSize: '1.8rem',
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontWeight: 600,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {data.owner} / {data.repo}
-                      </text>
-
-                      <text
-                        id='total'
-                        x={data.config.chartWidth - data.config.paddingR / 2}
-                        y={188}
-                        textAnchor='end'
-                        style={{
-                          fill: '#c9d1d9',
-                          fontSize: '9rem',
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontWeight: 900,
-                        }}
-                      >
-                        0
-                      </text>
-                      <text
-                        x={data.config.chartWidth - data.config.paddingR / 2 - 150}
-                        y={238}
-                        textAnchor='end'
-                        style={{
-                          fill: '#c9d1d9',
-                          fontSize: '1.8rem',
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontWeight: 600,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {data.dates.from} {data.dates.to}
-                      </text>
-                      <text
-                        x={data.config.chartWidth - data.config.paddingR / 2}
-                        y={238}
-                        textAnchor='end'
-                        style={{
-                          fill: '#7d8590',
-                          fontSize: '1.8rem',
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontWeight: 400,
-                          textTransform: 'capitalize',
-                        }}
-                      >
-                        {`(${data.dates.diff} days)`}
-                      </text>
-                    </g>
+                    <ChartHeadingElements
+                      chartWidth={data.config.chartWidth}
+                      paddingR={data.config.paddingR}
+                      color={data.config.color}
+                      state={data.state}
+                      owner={data.owner}
+                      repo={data.repo}
+                      title={data.title}
+                      dates={data.dates}
+                    />
 
                     <LineChartPolyline fills={data.fills} points={data.points} color={data.config.color} />
                     <DateTicks ticks={data.ticks} />
