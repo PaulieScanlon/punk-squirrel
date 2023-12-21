@@ -7,11 +7,13 @@ import { gsap } from 'gsap';
 import * as DOMPurify from 'dompurify';
 
 import AppLayout from '../../layouts/app-layout';
+import AppSection from '../../components/app-section';
+import FormSidebar from '../../components/form-sidebar';
 import DatePicker from '../../components/date-picker';
 import Select from '../../components/select';
 import ErrorAnnounce from '../../components/error-announce';
-import Loading from '../../components/loading';
 import PlayerControls from '../../components/player-controls';
+import SubmitButton from '../../components/submit-button';
 
 import MainSvg from '../../charts/main-svg';
 import RatioFrame from '../../charts/ratio-frame';
@@ -380,157 +382,144 @@ const Page = () => {
   return (
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
-        <section>
-          <div className='flex mr-60'>
-            {/* {data ? <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> : null} */}
-            <RatioFrame ratio={interfaceState.ratio}>
-              <MainSvg ref={chartSvgRef} ratio={interfaceState.ratio}>
-                {data && data.response.status === 200 && state === 'idle' ? (
-                  <>
-                    <defs>
-                      <clipPath id='clip-mask'>
-                        <rect ref={chartMaskRef} x='0' y='0' width={0} height={data.config.chartHeight} />
-                      </clipPath>
-                    </defs>
+        <AppSection>
+          {/* {data ? <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> : null} */}
+          <RatioFrame ratio={interfaceState.ratio}>
+            <MainSvg ref={chartSvgRef} ratio={interfaceState.ratio}>
+              {data && data.response.status === 200 && state === 'idle' ? (
+                <>
+                  <defs>
+                    <clipPath id='clip-mask'>
+                      <rect ref={chartMaskRef} x='0' y='0' width={0} height={data.config.chartHeight} />
+                    </clipPath>
+                  </defs>
 
-                    <VerticalLegend
-                      values={data.legend}
-                      chartHeight={data.config._chartHeight}
-                      paddingY={data.config.paddingY}
-                      paddingL={data.config.paddingL}
-                    />
+                  <VerticalLegend
+                    values={data.legend}
+                    chartHeight={data.config._chartHeight}
+                    paddingY={data.config.paddingY}
+                    paddingL={data.config.paddingL}
+                  />
 
-                    <HorizontalGuides
-                      guides={data.config.guides}
-                      chartWidth={data.config.chartWidth}
-                      chartHeight={data.config._chartHeight}
-                      paddingL={data.config.paddingL}
-                      paddingR={data.config.paddingR}
-                      paddingY={data.config.paddingY}
-                    />
+                  <HorizontalGuides
+                    guides={data.config.guides}
+                    chartWidth={data.config.chartWidth}
+                    chartHeight={data.config._chartHeight}
+                    paddingL={data.config.paddingL}
+                    paddingR={data.config.paddingR}
+                    paddingY={data.config.paddingY}
+                  />
 
-                    <ChartHeadingElements
-                      chartWidth={data.config.chartWidth}
-                      paddingR={data.config.paddingR}
-                      color={data.config.color}
-                      owner={data.owner}
-                      repo={data.repo}
-                      title={data.title}
-                      dates={data.dates}
-                    />
+                  <ChartHeadingElements
+                    chartWidth={data.config.chartWidth}
+                    paddingR={data.config.paddingR}
+                    color={data.config.color}
+                    owner={data.owner}
+                    repo={data.repo}
+                    title={data.title}
+                    dates={data.dates}
+                  />
 
-                    <LineChartPolyline fills={data.fills} points={data.points} color={data.config.color} />
-                    <DateTicks ticks={data.ticks} />
-                    <Watermark chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
-                  </>
-                ) : null}
-              </MainSvg>
-
-              {data && state === 'idle' ? (
-                <MainCanvas
-                  ref={chartCanvasRef}
-                  chartWidth={data.config.chartWidth}
-                  chartHeight={data.config.chartHeight}
-                />
+                  <LineChartPolyline fills={data.fills} points={data.points} color={data.config.color} />
+                  <DateTicks ticks={data.ticks} />
+                  <Watermark chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
+                </>
               ) : null}
-              <PlayerControls
-                isPlaying={interfaceState.animation != 'idle'}
-                onPlayPause={handlePlayPause}
-                onReplay={handleRestartTimeline}
-                disabled={
-                  data === undefined || state !== 'idle' || interfaceState.rendering || data.response.status !== 200
-                }
-              >
-                <div
-                  ref={timelineProgressRef}
-                  className={`${
-                    interfaceState.rendering ? 'bg-brand-surface-2' : 'bg-brand-mid-gray'
-                  } rounded-full h-1 w-0 transition-all duration-100`}
+            </MainSvg>
+
+            {data && state === 'idle' ? (
+              <MainCanvas
+                ref={chartCanvasRef}
+                chartWidth={data.config.chartWidth}
+                chartHeight={data.config.chartHeight}
+              />
+            ) : null}
+            <PlayerControls
+              isPlaying={interfaceState.animation != 'idle'}
+              onPlayPause={handlePlayPause}
+              onReplay={handleRestartTimeline}
+              disabled={
+                data === undefined || state !== 'idle' || interfaceState.rendering || data.response.status !== 200
+              }
+            >
+              <div
+                ref={timelineProgressRef}
+                className={`${
+                  interfaceState.rendering ? 'bg-brand-surface-2' : 'bg-brand-mid-gray'
+                } rounded-full h-1 w-0 transition-all duration-100`}
+              />
+            </PlayerControls>
+            <MainRender
+              ref={renderMessageRef}
+              handleRender={handleRender}
+              isDisabled={
+                data === undefined ||
+                state !== 'idle' ||
+                interfaceState.animation !== 'idle' ||
+                interfaceState.timeline === 0 ||
+                interfaceState.rendering ||
+                data.response.status !== 200
+              }
+            />
+          </RatioFrame>
+          <FormSidebar title='Commits' dates={dates}>
+            <Form method='post' className='flex flex-col gap-4' autoComplete='off'>
+              <input hidden name='dateFrom' readOnly value={dates.from} />
+              <input hidden name='dateTo' readOnly value={dates.to} />
+              <input hidden name='dateDiff' readOnly value={dates.diff} />
+              <div className='flex flex-col gap-2'>
+                <DatePicker label='End Date' name='to' onChange={handleDate} disabled={isDisabled} />
+                <Select
+                  label='Period'
+                  name='from'
+                  placeholder='Select a period'
+                  onChange={handlePeriod}
+                  disabled={isDisabled}
+                  items={[
+                    { name: '7 Days', value: 7 },
+                    { name: '14 Days', value: 14 },
+                    { name: '30 Days', value: 30 },
+                    { name: '60 Days', value: 60 },
+                    { name: '90 Days', value: 90 },
+                    { name: '180 Days', value: 180 },
+                    { name: '360 Days', value: 360 },
+                  ]}
                 />
-              </PlayerControls>
-              <MainRender
-                ref={renderMessageRef}
-                handleRender={handleRender}
+
+                <label>
+                  Owner
+                  <input type='text' defaultValue='' name='owner' disabled={isDisabled} required />
+                </label>
+                <label>
+                  Repository
+                  <input type='text' defaultValue='' name='repo' disabled={isDisabled} required />
+                </label>
+
+                <Select
+                  label='Ratio'
+                  name='ratio'
+                  placeholder='Select a ratio'
+                  onChange={handleRatio}
+                  disabled={isDisabled}
+                  items={[
+                    { name: '16:9', value: 1920 },
+                    { name: '1:1', value: 1080 },
+                  ]}
+                />
+              </div>
+              <ErrorAnnounce message={data?.response.message} />
+              <SubmitButton
                 isDisabled={
-                  data === undefined ||
+                  state !== 'idle' ||
                   state !== 'idle' ||
                   interfaceState.animation !== 'idle' ||
-                  interfaceState.timeline === 0 ||
-                  interfaceState.rendering ||
-                  data.response.status !== 200
+                  interfaceState.rendering
                 }
+                state={state}
               />
-            </RatioFrame>
-            <div className='fixed bg-brand-surface-1 w-60 h-screen top-0 right-0 border-l border-l-brand-border overflow-auto'>
-              <div className='flex flex-col gap-4 px-4 pt-24 pb-8'>
-                <div>
-                  <h1 className='mb-0 text-2xl'>Commits</h1>
-                  <time className='block text-sm font-medium'>
-                    {formatDate(dates.from)} &bull; {formatDate(dates.to)}{' '}
-                  </time>
-                </div>
-                <Form method='post' className='flex flex-col gap-4' autoComplete='off'>
-                  <input hidden name='dateFrom' readOnly value={dates.from} />
-                  <input hidden name='dateTo' readOnly value={dates.to} />
-                  <input hidden name='dateDiff' readOnly value={dates.diff} />
-                  <div className='flex flex-col gap-2'>
-                    <DatePicker label='End Date' name='to' onChange={handleDate} disabled={isDisabled} />
-                    <Select
-                      label='Period'
-                      name='from'
-                      placeholder='Select a period'
-                      onChange={handlePeriod}
-                      disabled={isDisabled}
-                      items={[
-                        { name: '7 Days', value: 7 },
-                        { name: '14 Days', value: 14 },
-                        { name: '30 Days', value: 30 },
-                        { name: '60 Days', value: 60 },
-                        { name: '90 Days', value: 90 },
-                        { name: '180 Days', value: 180 },
-                        { name: '360 Days', value: 360 },
-                      ]}
-                    />
-
-                    <label>
-                      Owner
-                      <input type='text' defaultValue='' name='owner' disabled={isDisabled} required />
-                    </label>
-                    <label>
-                      Repository
-                      <input type='text' defaultValue='' name='repo' disabled={isDisabled} required />
-                    </label>
-
-                    <Select
-                      label='Ratio'
-                      name='ratio'
-                      placeholder='Select a ratio'
-                      onChange={handleRatio}
-                      disabled={isDisabled}
-                      items={[
-                        { name: '16:9', value: 1920 },
-                        { name: '1:1', value: 1080 },
-                      ]}
-                    />
-                  </div>
-                  <ErrorAnnounce message={data?.response.message} />
-                  <button
-                    type='submit'
-                    className='inline-flex justify-center items-center px-3 py-2 rounded bg-brand-pink enabled:hover:brightness-110 transition-all duration-300 font-medium text-xs disabled:bg-brand-surface-2 disabled:text-brand-mid-gray h-8'
-                    disabled={
-                      state !== 'idle' ||
-                      state !== 'idle' ||
-                      interfaceState.animation !== 'idle' ||
-                      interfaceState.rendering
-                    }
-                  >
-                    {state === 'submitting' ? <Loading /> : 'Submit'}
-                  </button>
-                </Form>
-              </div>
-            </div>
-          </div>
-        </section>
+            </Form>
+          </FormSidebar>
+        </AppSection>
       </AppLayout>
     </>
   );
