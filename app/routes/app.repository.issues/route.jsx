@@ -7,13 +7,19 @@ import { gsap } from 'gsap';
 import * as DOMPurify from 'dompurify';
 
 import AppLayout from '../../layouts/app-layout';
-import RatioFrame from '../../components/ratio-frame';
-import MainSvg from '../../components/main-svg';
 import DatePicker from '../../components/date-picker';
 import Select from '../../components/select';
 import ErrorAnnounce from '../../components/error-announce';
 import Loading from '../../components/loading';
 import PlayerControls from '../../components/player-controls';
+
+import MainSvg from '../../charts/main-svg';
+import RatioFrame from '../../charts/ratio-frame';
+import DateTicks from '../../charts/date-ticks';
+import VerticalLegend from '../../charts/vertical-legend';
+import HorizontalGuides from '../../charts/horizontal-guides';
+import LineChartPolyline from '../../charts/line-chart-polyline';
+import Watermark from '../../charts/watermark';
 
 import { supabaseServer } from '../../supabase.server';
 
@@ -391,55 +397,21 @@ const Page = () => {
                       </clipPath>
                     </defs>
 
-                    {data.legend.map((value, index) => {
-                      const ratio = index / (data.legend.length - 1);
-                      const y = (data.config._chartHeight - data.config.paddingY) * ratio + 10;
-                      return (
-                        <text
-                          key={index}
-                          x={data.config.paddingL - 50}
-                          y={y + data.config.paddingY}
-                          textAnchor='end'
-                          style={{
-                            fill: '#7d8590',
-                            fontSize: '1.2rem',
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {value}
-                        </text>
-                      );
-                    })}
-
-                    <rect
-                      width={1}
-                      height={data.config._chartHeight - data.config.paddingY}
-                      x={data.config.paddingL - 20}
-                      y={data.config.paddingY}
-                      style={{
-                        fill: '#272e36',
-                      }}
+                    <VerticalLegend
+                      values={data.legend}
+                      chartHeight={data.config._chartHeight}
+                      paddingY={data.config.paddingY}
+                      paddingL={data.config.paddingL}
                     />
 
-                    {data.config.guides.map((_, index) => {
-                      const ratio = index / data.config.guides.length;
-                      const y = (data.config._chartHeight - data.config.paddingY) * ratio;
-
-                      return (
-                        <polyline
-                          key={index}
-                          points={`${data.config.paddingL},${y + data.config.paddingY}, ${
-                            data.config.chartWidth - data.config.paddingR / 2
-                          }, ${y + data.config.paddingY}`}
-                          style={{
-                            fill: 'none',
-                            strokeWidth: 1,
-                            stroke: '#272e36',
-                          }}
-                        />
-                      );
-                    })}
+                    <HorizontalGuides
+                      guides={data.config.guides}
+                      chartWidth={data.config.chartWidth}
+                      chartHeight={data.config._chartHeight}
+                      paddingL={data.config.paddingL}
+                      paddingR={data.config.paddingR}
+                      paddingY={data.config.paddingY}
+                    />
 
                     <g>
                       <rect
@@ -542,71 +514,9 @@ const Page = () => {
                       </text>
                     </g>
 
-                    <g>
-                      <polyline
-                        clipPath='url(#clip-mask)'
-                        points={data.fills}
-                        style={{
-                          fill: data.config.color,
-                          fillOpacity: 0.1,
-                          stroke: 'none',
-                        }}
-                      />
-
-                      <polyline
-                        clipPath='url(#clip-mask)'
-                        points={data.points}
-                        style={{
-                          fill: 'none',
-                          strokeWidth: 3,
-                          stroke: data.config.color,
-                        }}
-                      />
-
-                      {data.ticks.map((tick, index) => {
-                        const { date, x, y, weekend } = tick;
-
-                        return (
-                          <g
-                            key={index}
-                            className='date'
-                            style={{
-                              transform: 'translateX(-20px)',
-                              opacity: 0,
-                            }}
-                          >
-                            <text
-                              x={x}
-                              y={y}
-                              textAnchor='middle'
-                              style={{
-                                fill: weekend ? '#49525e' : '#7d8590',
-                                fontSize: '1.2rem',
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontWeight: 600,
-                                transform: 'rotate(45deg)',
-                                transformBox: 'content-box',
-                              }}
-                            >
-                              {date}
-                            </text>
-                          </g>
-                        );
-                      })}
-                    </g>
-                    <text
-                      x={data.config.chartWidth / 2}
-                      y={data.config.chartHeight - 55}
-                      textAnchor='middle'
-                      style={{
-                        fill: '#f0f6fc',
-                        fontSize: '1.4rem',
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontWeight: 600,
-                      }}
-                    >
-                      www.punksquirrel.app
-                    </text>
+                    <LineChartPolyline fills={data.fills} points={data.points} color={data.config.color} />
+                    <DateTicks ticks={data.ticks} />
+                    <Watermark chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
                   </>
                 ) : null}
               </MainSvg>
