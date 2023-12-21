@@ -7,6 +7,8 @@ import { gsap } from 'gsap';
 import * as DOMPurify from 'dompurify';
 
 import AppLayout from '../../layouts/app-layout';
+import RatioFrame from '../../components/ratio-frame';
+import MainSvg from '../../components/main-svg';
 import DatePicker from '../../components/date-picker';
 import Select from '../../components/select';
 import ErrorAnnounce from '../../components/error-announce';
@@ -379,15 +381,8 @@ const Page = () => {
         <section>
           <div className='flex mr-60'>
             {/* {data ? <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> : null} */}
-            <div className={`flex flex-col gap-4 grow mx-auto ${interfaceState.ratio === 1080 ? 'max-w-lg' : ''}`}>
-              <svg
-                ref={chartSvgRef}
-                xmlns='http://www.w3.org/2000/svg'
-                viewBox={`0 0 ${interfaceState.ratio} 1080`}
-                style={{
-                  background: '#0d1117',
-                }}
-              >
+            <RatioFrame ratio={interfaceState.ratio}>
+              <MainSvg ref={chartSvgRef} ratio={interfaceState.ratio}>
                 {data && data.response.status === 200 && state === 'idle' ? (
                   <>
                     <defs>
@@ -614,7 +609,7 @@ const Page = () => {
                     </text>
                   </>
                 ) : null}
-              </svg>
+              </MainSvg>
 
               {data && state === 'idle' ? (
                 <>
@@ -664,7 +659,7 @@ const Page = () => {
                   </button>
                 </div>
               </div>
-            </div>
+            </RatioFrame>
             <div className='fixed bg-brand-surface-1 w-60 h-screen top-0 right-0 border-l border-l-brand-border overflow-auto'>
               <div className='flex flex-col gap-4 px-4 pt-24 pb-8'>
                 <div>
