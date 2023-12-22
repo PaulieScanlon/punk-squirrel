@@ -3,7 +3,7 @@ const Watermark = ({ chartWidth, chartHeight }) => {
     <>
       <text
         x={chartWidth / 2}
-        y={chartHeight - 50}
+        y={chartHeight - 57}
         textAnchor='middle'
         style={{
           fill: '#f0f6fc',

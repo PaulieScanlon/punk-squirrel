@@ -6,9 +6,11 @@ const FormSidebar = ({ title, dates, children }) => {
       <div className='flex flex-col gap-4 px-4 pt-8 lg:pt-24 pb-8'>
         <div>
           <h1 className='mb-0 text-2xl'>{title}</h1>
-          <time className='block text-sm font-medium'>
-            {formatDate(dates.from)} &bull; {formatDate(dates.to)}
-          </time>
+          {dates ? (
+            <time className='block text-sm font-medium'>
+              {formatDate(dates.from)} &bull; {formatDate(dates.to)}
+            </time>
+          ) : null}
         </div>
         {children}
       </div>

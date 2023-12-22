@@ -8,7 +8,7 @@ const HorizontalGuides = ({ guides, chartWidth, chartHeight, paddingL, paddingR,
         return (
           <polyline
             key={index}
-            points={`${paddingL},${y + paddingY}, ${chartWidth - paddingR / 2}, ${y + paddingY}`}
+            points={`${paddingL},${y + paddingY}, ${chartWidth - paddingR}, ${y + paddingY}`}
             style={{
               fill: 'none',
               strokeWidth: 1,

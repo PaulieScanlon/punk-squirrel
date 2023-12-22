@@ -1,5 +1,5 @@
-export const createLineChartProperties = (array, chartWidth, _chartHeight, maxValue, paddingR, paddingL, paddingY) => {
-  return array.map((entry, index) => {
+export const createLineChartProperties = (array, chartWidth, _chartHeight, maxValue, paddingL, paddingR, paddingY) => {
+  const results = array.map((entry, index) => {
     const { count } = entry;
 
     const x_ratio = index / (array.length - 1);
@@ -13,4 +13,6 @@ export const createLineChartProperties = (array, chartWidth, _chartHeight, maxVa
       y,
     };
   });
+
+  return results;
 };

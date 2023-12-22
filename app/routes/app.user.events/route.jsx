@@ -9,7 +9,7 @@ import * as DOMPurify from 'dompurify';
 import AppLayout from '../../layouts/app-layout';
 import AppSection from '../../components/app-section';
 import FormSidebar from '../../components/form-sidebar';
-import DatePicker from '../../components/date-picker';
+
 import Select from '../../components/select';
 import ErrorAnnounce from '../../components/error-announce';
 import PlayerControls from '../../components/player-controls';
@@ -18,27 +18,20 @@ import SubmitButton from '../../components/submit-button';
 import MainSvg from '../../charts/main-svg';
 import RatioFrame from '../../charts/ratio-frame';
 import ChartHeadingElements from '../../charts/chart-heading-elements';
-import DateTicks from '../../charts/date-ticks';
-import YAxis from '../../charts/y-axis';
-import HorizontalGuides from '../../charts/horizontal-guides';
-import LineChartPolyline from '../../charts/line-chart-polyline';
+
 import Watermark from '../../charts/watermark';
 import MainCanvas from '../../charts/main-canvas';
 import MainRender from '../../charts/main-render';
 
 import { supabaseServer } from '../../supabase.server';
 
-import { generateDateArray } from '../../utils/generate-date-array';
-import { updateDateCount } from '../../utils/update-date-count';
 import { formatDate } from '../../utils/format-date';
-import { createLineChartProperties } from '../../utils/create-line-chart-properties';
-import { createLineChartPoints } from '../../utils/create-line-chart-points';
-import { createLineChartFills } from '../../utils/create-line-chart-fills';
-import { createTicks } from '../../utils/create-ticks';
+import { createBarChartProperties } from '../../utils/create-bar-chart-properties';
+import { GitHubEventTypes } from '../../utils/github-event-types';
+import { generateEventTypesArray } from '../../utils/generate-event-types-array';
+import { updateEventsCount } from '../../utils/update-events-count';
 import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
-import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
-import { createLegendRange } from '../../utils/create-legend-range';
 
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
@@ -61,34 +54,21 @@ export const action = async ({ request }) => {
   });
 
   const body = await request.formData();
-  const owner = body.get('owner');
-  const repo = body.get('repo');
-  const state = body.get('state');
+  const username = body.get('username');
   const ratio = body.get('ratio');
-  const dateFrom = body.get('dateFrom');
-  const dateTo = body.get('dateTo');
-  const dateDiff = body.get('dateDiff');
 
   const chartWidth = ratio;
   const chartHeight = 1080;
-  const offsetX = 60;
-  const offsetY = 220;
+  const offsetX = 100;
+  const offsetY = 180;
   const _chartHeight = chartHeight - offsetY;
   const paddingL = 60;
   const paddingR = 60;
-  const paddingY = 340;
-  const guides = [...Array(8).keys()];
+  const paddingY = 290;
 
   const defaultResponse = {
-    title: 'issues',
-    owner,
-    repo,
-    state,
-    dates: {
-      from: formatDate(dateFrom),
-      to: formatDate(dateTo),
-      diff: dateDiff,
-    },
+    title: 'Events',
+    username: username,
     config: {
       chartWidth,
       chartHeight,
@@ -98,53 +78,53 @@ export const action = async ({ request }) => {
       paddingR,
       paddingL,
       paddingY,
-      guides,
-      color: state === 'open' ? '#3fb950' : '#f85149',
+      color: '#7c72ff',
     },
   };
 
   try {
-    // https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28#list-repository-issues
-    const response = await octokit.paginate('GET /repos/{owner}/{repo}/issues', {
-      owner: owner,
-      repo: repo,
+    // https://docs.github.com/en/rest/activity/events?apiVersion=2022-11-28#list-events-for-the-authenticated-user
+    const response = await octokit.request('GET /users/{username}/events', {
+      username: username,
       per_page: 100,
-      sort: 'created',
-      state: state,
-      created: 'created',
-      since: dateFrom,
       headers: {
         'X-GitHub-Api-Version': '2022-11-28',
       },
     });
 
-    const { dateRange } = updateDateCount(response, generateDateArray(dateFrom, dateDiff), 'created_at');
+    const events = updateEventsCount(response.data, generateEventTypesArray(GitHubEventTypes));
 
-    const maxValue = findMaxValue(dateRange, 'count');
-    const total = findTotalValue(dateRange, 'count');
-    const properties = createLineChartProperties(
-      dateRange,
-      chartWidth,
+    const dateFrom = new Date(response.data[response.data.length - 1].created_at);
+    const dateTo = new Date(response.data[0].created_at);
+    const diff = Math.ceil((dateTo - dateFrom) / (24 * 60 * 60 * 1000));
+    const maxValue = findMaxValue(events, 'count');
+    const total = findTotalValue(events, 'count');
+    const properties = createBarChartProperties(
+      events,
+      chartWidth / 2 - offsetX,
       _chartHeight,
       maxValue,
-      paddingL + offsetX,
-      paddingR,
+      paddingL,
       paddingY
     );
+
+    console.log(properties);
 
     return json({
       ...defaultResponse,
       response: {
-        raw: response,
+        raw: response.data,
         status: 200,
-        message: !response.length ? 'No Data' : '',
+        message: !response.data.length ? 'No Data' : '',
       },
       maxValue,
       total,
-      ticks: createTicks(dateRange, chartWidth, _chartHeight, paddingR, paddingL + offsetX, offsetX),
-      yAxis: createLegendRange(dateRange, guides.length, 'count'),
-      points: createLineChartPoints(properties),
-      fills: createLineChartFills(properties, _chartHeight),
+      bars: properties,
+      dates: {
+        from: formatDate(dateFrom),
+        to: formatDate(dateTo),
+        diff: diff,
+      },
     });
   } catch (error) {
     return json({
@@ -153,11 +133,6 @@ export const action = async ({ request }) => {
         status: 404,
         message: error.response.data.message,
       },
-      maxValue: 0,
-      total: 0,
-      ticks: [],
-      points: [],
-      fills: [],
     });
   }
 };
@@ -200,15 +175,6 @@ const Page = () => {
     ratio: 1920,
   });
 
-  const dateFrom = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
-  const dateTo = new Date();
-
-  const [dates, setDates] = useState({
-    from: dateFrom,
-    to: dateTo,
-    diff: Math.ceil((dateTo - dateFrom) / (24 * 60 * 60 * 1000)),
-  });
-
   const tl = useMemo(
     () =>
       gsap.timeline({
@@ -245,17 +211,7 @@ const Page = () => {
     const chartMask = chartMaskRef.current;
 
     if (data !== undefined && data.response.status === 200 && state === 'idle') {
-      const duration = calculateAnimationDuration(dates.diff);
-      const stagger = duration / dates.diff;
-
       tl.play();
-      tl.to(chartMask, { duration: duration, width: data.config.chartWidth, ease: 'linear' });
-      tl.to('#total', { duration: duration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' }, '<');
-      tl.to(
-        '.date',
-        { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: stagger, ease: 'linear' },
-        '<'
-      );
 
       setInterfaceState((prevState) => ({
         ...prevState,
@@ -358,26 +314,6 @@ const Page = () => {
     }));
   };
 
-  const handleDate = (value) => {
-    setDates((prevState) => ({
-      ...prevState,
-      to: new Date(value),
-      from: new Date(new Date(value) - dates.diff * 24 * 60 * 60 * 1000),
-    }));
-  };
-
-  const handlePeriod = (value) => {
-    setDates((prevState) => ({
-      ...prevState,
-      from: new Date(new Date(dates.to) - value * 24 * 60 * 60 * 1000),
-      diff: value,
-    }));
-  };
-
-  const handleState = () => {
-    revalidator.revalidate();
-  };
-
   const handleNav = () => {
     setIsNavOpen(!isNavOpen);
   };
@@ -388,48 +324,84 @@ const Page = () => {
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <AppSection>
-          {/* {data ? <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> : null} */}
+          {/* {data ? (
+            <>
+              <pre>{JSON.stringify(data, null, 2)}</pre>
+            </>
+          ) : null} */}
           <RatioFrame ratio={interfaceState.ratio}>
             <MainSvg ref={chartSvgRef} ratio={interfaceState.ratio}>
               {data && data.response.status === 200 && state === 'idle' ? (
                 <>
-                  <defs>
-                    <clipPath id='clip-mask'>
-                      <rect ref={chartMaskRef} x='0' y='0' width={0} height={data.config.chartHeight} />
-                    </clipPath>
-                  </defs>
-
-                  <YAxis
-                    values={data.yAxis}
-                    chartHeight={data.config._chartHeight}
-                    paddingY={data.config.paddingY}
-                    paddingL={data.config.paddingL}
-                  />
-
-                  <HorizontalGuides
-                    guides={data.config.guides}
-                    chartWidth={data.config.chartWidth}
-                    chartHeight={data.config._chartHeight}
-                    paddingL={data.config.paddingL + data.config.offsetX}
-                    paddingR={data.config.paddingR}
-                    paddingY={data.config.paddingY}
-                  />
-
                   <ChartHeadingElements
                     chartWidth={data.config.chartWidth}
                     paddingL={data.config.paddingL}
                     paddingR={data.config.paddingR}
                     color={data.config.color}
-                    state={data.state}
-                    total='total'
-                    owner={data.owner}
-                    repo={data.repo}
+                    username={data.username}
                     title={data.title}
                     dates={data.dates}
                   />
 
-                  <LineChartPolyline fills={data.fills} points={data.points} color={data.config.color} />
-                  <DateTicks ticks={data.ticks} />
+                  {data.bars.map((bar, index) => {
+                    const { x, y, width, outline, height, name, count } = bar;
+
+                    return (
+                      <g key={index}>
+                        <rect
+                          x={x}
+                          y={y}
+                          width={outline}
+                          height={height}
+                          style={{
+                            fill: data.config.color,
+                            opacity: 0.1,
+                          }}
+                        />
+                        <rect
+                          x={x}
+                          y={y}
+                          width={width}
+                          height={height}
+                          style={{
+                            fill: 'none',
+                            strokeWidth: 3,
+                            stroke: data.config.color,
+                          }}
+                        />
+
+                        <text
+                          x={data.config.chartWidth / 2}
+                          y={y + 28}
+                          style={{
+                            fill: '#c9d1d9',
+                            fontSize: '1.4rem',
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: 600,
+                            textTransform: 'capitalize',
+                          }}
+                        >
+                          {name}
+                        </text>
+
+                        <text
+                          x={data.config.chartWidth - data.config.paddingR}
+                          y={y + 32}
+                          textAnchor='end'
+                          style={{
+                            fill: '#c9d1d9',
+                            fontSize: '2.6rem',
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontWeight: 600,
+                            textTransform: 'capitalize',
+                          }}
+                        >
+                          {count}
+                        </text>
+                      </g>
+                    );
+                  })}
+
                   <Watermark chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
                 </>
               ) : null}
@@ -442,7 +414,6 @@ const Page = () => {
                 chartHeight={data.config.chartHeight}
               />
             ) : null}
-
             <PlayerControls
               isPlaying={interfaceState.animation != 'idle'}
               onPlayPause={handlePlayPause}
@@ -471,51 +442,13 @@ const Page = () => {
               }
             />
           </RatioFrame>
-          <FormSidebar title='Issues' dates={dates}>
+          <FormSidebar title='Events'>
             <Form method='post' className='flex flex-col gap-4' autoComplete='off'>
-              <input hidden name='dateFrom' readOnly value={dates.from} />
-              <input hidden name='dateTo' readOnly value={dates.to} />
-              <input hidden name='dateDiff' readOnly value={dates.diff} />
               <div className='flex flex-col gap-2'>
-                <DatePicker label='End Date' name='to' onChange={handleDate} disabled={isDisabled} />
-
-                <Select
-                  label='Period'
-                  name='from'
-                  placeholder='Select a period'
-                  onChange={handlePeriod}
-                  disabled={isDisabled}
-                  items={[
-                    { name: '7 Days', value: 7 },
-                    { name: '14 Days', value: 14 },
-                    { name: '30 Days', value: 30 },
-                    { name: '60 Days', value: 60 },
-                    { name: '90 Days', value: 90 },
-                    { name: '180 Days', value: 180 },
-                    { name: '360 Days', value: 360 },
-                  ]}
-                />
-
                 <label>
-                  Owner
-                  <input type='text' defaultValue='' name='owner' disabled={isDisabled} required />
+                  username
+                  <input type='text' defaultValue='PaulieScanlon' name='username' disabled={isDisabled} required />
                 </label>
-                <label>
-                  Repository
-                  <input type='text' defaultValue='' name='repo' disabled={isDisabled} required />
-                </label>
-
-                <Select
-                  label='State'
-                  name='state'
-                  placeholder='Select a state'
-                  onChange={handleState}
-                  disabled={isDisabled}
-                  items={[
-                    { name: 'open', value: 'open' },
-                    { name: 'closed', value: 'closed' },
-                  ]}
-                />
 
                 <Select
                   label='Ratio'

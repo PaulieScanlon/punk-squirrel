@@ -19,7 +19,7 @@ import MainSvg from '../../charts/main-svg';
 import RatioFrame from '../../charts/ratio-frame';
 import ChartHeadingElements from '../../charts/chart-heading-elements';
 import DateTicks from '../../charts/date-ticks';
-import VerticalLegend from '../../charts/vertical-legend';
+import YAxis from '../../charts/y-axis';
 import HorizontalGuides from '../../charts/horizontal-guides';
 import LineChartPolyline from '../../charts/line-chart-polyline';
 import Watermark from '../../charts/watermark';
@@ -71,10 +71,11 @@ export const action = async ({ request }) => {
 
   const chartWidth = ratio;
   const chartHeight = 1080;
+  const offsetX = 60;
   const offsetY = 220;
   const _chartHeight = chartHeight - offsetY;
-  const paddingL = 110;
-  const paddingR = 75;
+  const paddingL = 60;
+  const paddingR = 60;
   const paddingY = 340;
   const guides = [...Array(8).keys()];
 
@@ -92,6 +93,7 @@ export const action = async ({ request }) => {
       chartWidth,
       chartHeight,
       _chartHeight,
+      offsetX,
       offsetY,
       paddingR,
       paddingL,
@@ -122,8 +124,8 @@ export const action = async ({ request }) => {
       chartWidth,
       _chartHeight,
       maxValue,
+      paddingL + offsetX,
       paddingR,
-      paddingL,
       paddingY
     );
 
@@ -136,12 +138,10 @@ export const action = async ({ request }) => {
       },
       maxValue,
       total,
-      ticks: createTicks(dateRange, chartWidth, _chartHeight, paddingR, paddingL),
-      legend: createLegendRange(dateRange, guides.length, 'count'),
-      properties: properties,
+      ticks: createTicks(dateRange, chartWidth, _chartHeight, paddingR, paddingL + offsetX, offsetX),
+      yAxis: createLegendRange(dateRange, guides.length, 'count'),
       points: createLineChartPoints(properties),
       fills: createLineChartFills(properties, _chartHeight),
-      data: dateRange,
     });
   } catch (error) {
     return json({
@@ -153,10 +153,8 @@ export const action = async ({ request }) => {
       maxValue: 0,
       total: 0,
       ticks: [],
-      properties: [],
       points: [],
       fills: [],
-      data: [],
     });
   }
 };
@@ -394,8 +392,8 @@ const Page = () => {
                     </clipPath>
                   </defs>
 
-                  <VerticalLegend
-                    values={data.legend}
+                  <YAxis
+                    values={data.yAxis}
                     chartHeight={data.config._chartHeight}
                     paddingY={data.config.paddingY}
                     paddingL={data.config.paddingL}
@@ -405,15 +403,17 @@ const Page = () => {
                     guides={data.config.guides}
                     chartWidth={data.config.chartWidth}
                     chartHeight={data.config._chartHeight}
-                    paddingL={data.config.paddingL}
+                    paddingL={data.config.paddingL + data.config.offsetX}
                     paddingR={data.config.paddingR}
                     paddingY={data.config.paddingY}
                   />
 
                   <ChartHeadingElements
                     chartWidth={data.config.chartWidth}
+                    paddingL={data.config.paddingL}
                     paddingR={data.config.paddingR}
                     color={data.config.color}
+                    total='total'
                     owner={data.owner}
                     repo={data.repo}
                     title={data.title}

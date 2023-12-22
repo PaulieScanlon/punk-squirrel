@@ -5,7 +5,7 @@ const isWeekend = (date) => {
   return day === 0 || day === 6;
 };
 
-export const createTicks = (array, chartWidth, _chartHeight, paddingR, paddingL) => {
+export const createTicks = (array, chartWidth, _chartHeight, paddingR, paddingL, offsetX) => {
   const totalTicks = Math.min(array.length, 30);
 
   return array
@@ -19,15 +19,13 @@ export const createTicks = (array, chartWidth, _chartHeight, paddingR, paddingL)
       const { date } = tick;
 
       const x_ratio = index / (totalTicks - 1);
-      const x = x_ratio * (chartWidth - paddingR * 2 - paddingL);
+      const x = x_ratio * (chartWidth - paddingL - paddingR * 2.8);
       const y = _chartHeight;
-
-      console.log();
 
       return {
         date: formatTick(date),
         weekend: isWeekend(date),
-        x: x + 45 + paddingL,
+        x: x + paddingL + offsetX / 2,
         y: y + 45,
       };
     });

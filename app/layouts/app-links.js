@@ -5,7 +5,6 @@ export const appLinks = [
   },
   {
     text: 'Repository',
-
     links: [
       {
         to: '/app/repository/issues',
@@ -17,10 +16,15 @@ export const appLinks = [
       },
     ],
   },
-  // {
-  //   to: '/app/user/commits',
-  //   text: 'Commits',
-  // },
+  {
+    text: 'User',
+    links: [
+      {
+        to: '/app/user/events',
+        text: 'Events',
+      },
+    ],
+  },
 ];
 
 export const accountLinks = [

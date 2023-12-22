@@ -1,10 +1,22 @@
-const ChartHeadingElements = ({ chartWidth, paddingR, color, state, owner, repo, title, dates }) => {
+const ChartHeadingElements = ({
+  chartWidth,
+  paddingL,
+  paddingR,
+  color,
+  state,
+  total,
+  owner,
+  repo,
+  username,
+  title,
+  dates,
+}) => {
   return (
     <>
       {state ? (
         <g
           style={{
-            transform: 'translate(168px, 68px)',
+            transform: 'translate(200px, 68px)',
           }}
         >
           <rect
@@ -38,7 +50,7 @@ const ChartHeadingElements = ({ chartWidth, paddingR, color, state, owner, repo,
       ) : null}
 
       <text
-        x={paddingR / 2}
+        x={paddingL}
         y={104}
         style={{
           fill: '#c9d1d9',
@@ -51,7 +63,7 @@ const ChartHeadingElements = ({ chartWidth, paddingR, color, state, owner, repo,
         {title}
       </text>
       <text
-        x={paddingR / 2}
+        x={paddingL}
         y={190}
         style={{
           fill: '#f0f6fc',
@@ -61,26 +73,28 @@ const ChartHeadingElements = ({ chartWidth, paddingR, color, state, owner, repo,
           textTransform: 'lowercase',
         }}
       >
-        {owner} / {repo}
+        {username ? username : `${owner} / ${repo}`}
       </text>
 
-      <text
-        id='total'
-        x={chartWidth - paddingR / 2}
-        y={188}
-        textAnchor='end'
-        style={{
-          fill: '#f0f6fc',
-          fontSize: '9rem',
-          fontFamily: 'Plus Jakarta Sans',
-          fontWeight: 900,
-        }}
-      >
-        0
-      </text>
+      {total ? (
+        <text
+          id={total}
+          x={chartWidth - paddingR}
+          y={188}
+          textAnchor='end'
+          style={{
+            fill: '#f0f6fc',
+            fontSize: '9rem',
+            fontFamily: 'Plus Jakarta Sans',
+            fontWeight: 900,
+          }}
+        >
+          0
+        </text>
+      ) : null}
       <text
         x={chartWidth / 2}
-        y={285}
+        y={260}
         textAnchor='middle'
         style={{
           fill: '#c9d1d9',

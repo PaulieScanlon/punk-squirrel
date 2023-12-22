@@ -1,15 +1,15 @@
-export const VerticalLegend = ({ values, chartHeight, paddingY, paddingL }) => {
+export const YAxis = ({ values, chartHeight, paddingY, paddingL }) => {
   return (
     <>
       {values.map((value, index) => {
         const ratio = index / (values.length - 1);
-        const y = (chartHeight - paddingY) * ratio + 10;
+        const y = (chartHeight - paddingY) * ratio + 7;
         return (
           <text
             key={index}
-            x={paddingL - 50}
+            x={paddingL}
             y={y + paddingY}
-            textAnchor='end'
+            textAnchor='start'
             style={{
               fill: '#7d8590',
               fontSize: '1.2rem',
@@ -25,4 +25,4 @@ export const VerticalLegend = ({ values, chartHeight, paddingY, paddingL }) => {
   );
 };
 
-export default VerticalLegend;
+export default YAxis;
