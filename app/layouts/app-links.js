@@ -16,15 +16,15 @@ export const appLinks = [
       },
     ],
   },
-  {
-    text: 'User',
-    links: [
-      {
-        to: '/app/user/events',
-        text: 'Events',
-      },
-    ],
-  },
+  // {
+  //   text: 'User',
+  //   links: [
+  //     {
+  //       to: '/app/user/events',
+  //       text: 'Events',
+  //     },
+  //   ],
+  // },
 ];
 
 export const accountLinks = [
