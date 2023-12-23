@@ -1,4 +1,4 @@
-export const createLegendRange = (data, numRanges, key) => {
+export const createYAxisRange = (data, numRanges, key) => {
   const values = key ? data.map((item) => item[key]) : data;
   const minValue = Math.min(...values);
   const maxValue = Math.max(...values);

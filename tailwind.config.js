@@ -13,6 +13,7 @@ export default {
           pink: '#ee5ab6',
           teal: '#33b3ae',
           red: '#f85149',
+          orange: '#ff9549',
           yellow: '#ffd33d',
           'punk-teal': '#02e9a7',
           'punk-pink': '#f21cca',

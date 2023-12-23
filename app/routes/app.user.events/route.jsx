@@ -18,20 +18,24 @@ import SubmitButton from '../../components/submit-button';
 import MainSvg from '../../charts/main-svg';
 import RatioFrame from '../../charts/ratio-frame';
 import ChartHeadingElements from '../../charts/chart-heading-elements';
-
+import LineChartPolyline from '../../charts/line-chart-polyline';
 import Watermark from '../../charts/watermark';
 import MainCanvas from '../../charts/main-canvas';
 import MainRender from '../../charts/main-render';
 
 import { supabaseServer } from '../../supabase.server';
 
+import { generateDateArray } from '../../utils/generate-date-array';
+import { updateDateCount } from '../../utils/update-date-count';
 import { formatDate } from '../../utils/format-date';
-import { createBarChartProperties } from '../../utils/create-bar-chart-properties';
-import { GitHubEventTypes } from '../../utils/github-event-types';
-import { generateEventTypesArray } from '../../utils/generate-event-types-array';
-import { updateEventsCount } from '../../utils/update-events-count';
+import { createLineChartProperties } from '../../utils/create-line-chart-properties';
+import { createLineChartPoints } from '../../utils/create-line-chart-points';
+import { createLineChartFills } from '../../utils/create-line-chart-fills';
 import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
+import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
+import { groupBy } from '../../utils/group-by';
+import { GitHubEventTypes } from '../../utils/github-events';
 
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
@@ -59,12 +63,17 @@ export const action = async ({ request }) => {
 
   const chartWidth = ratio;
   const chartHeight = 1080;
-  const offsetX = 100;
-  const offsetY = 180;
+  const offsetX = 60;
+  const offsetY = 120;
   const _chartHeight = chartHeight - offsetY;
   const paddingL = 60;
   const paddingR = 60;
-  const paddingY = 290;
+  const paddingY = 340;
+
+  const gridCols = 3;
+  const gridRows = 2;
+  const gridColGap = 0;
+  const gridRowGap = 100;
 
   const defaultResponse = {
     title: 'Events',
@@ -78,7 +87,6 @@ export const action = async ({ request }) => {
       paddingR,
       paddingL,
       paddingY,
-      color: '#7c72ff',
     },
   };
 
@@ -92,23 +100,76 @@ export const action = async ({ request }) => {
       },
     });
 
-    const events = updateEventsCount(response.data, generateEventTypesArray(GitHubEventTypes));
-
     const dateFrom = new Date(response.data[response.data.length - 1].created_at);
     const dateTo = new Date(response.data[0].created_at);
-    const diff = Math.ceil((dateTo - dateFrom) / (24 * 60 * 60 * 1000));
-    const maxValue = findMaxValue(events, 'count');
-    const total = findTotalValue(events, 'count');
-    const properties = createBarChartProperties(
-      events,
-      chartWidth / 2 - offsetX,
-      _chartHeight,
-      maxValue,
-      paddingL,
-      paddingY
+    const dateDiff = Math.ceil((dateTo - dateFrom) / (24 * 60 * 60 * 1000));
+
+    const responseGrouped = groupBy(response.data, 'type');
+
+    const eventsGrouped = Object.keys(responseGrouped)
+      .map((object) => {
+        const { name, color } = GitHubEventTypes[object];
+        const dateRange = updateDateCount(responseGrouped[object], generateDateArray(dateFrom, dateDiff), 'created_at');
+        return {
+          name: name,
+          color: color,
+          total: findTotalValue(dateRange, 'count'),
+          dateRange: dateRange,
+        };
+      })
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 6);
+
+    const eventsFlat = Object.keys(eventsGrouped)
+      .map((_, index) => eventsGrouped[index].dateRange.flat())
+      .flat();
+
+    const maxValue = findMaxValue(eventsFlat, 'count');
+    const total = findTotalValue(eventsFlat, 'count');
+
+    const createGrid = (columns, rows, gridColGap, gridRowGap, width, height, offsetY, offsetX) => {
+      const grid = Array.from({ length: rows }, (_, row) =>
+        Array.from({ length: columns }, (_, col) => ({
+          x: col * (width + gridColGap),
+          y: row * (height + gridRowGap) + offsetY,
+          width: width - offsetX,
+        }))
+      ).flat();
+
+      return grid;
+    };
+
+    const grid = createGrid(
+      gridCols,
+      gridRows,
+      gridColGap,
+      gridRowGap,
+      chartWidth / gridCols,
+      _chartHeight / 2 / gridRows,
+      offsetY,
+      offsetX
     );
 
-    console.log(properties);
+    const propertiesGrouped = Object.keys(eventsGrouped).map((_, index) => {
+      const { name, color, total, dateRange } = eventsGrouped[index];
+      const properties = createLineChartProperties(
+        dateRange,
+        chartWidth / gridCols,
+        _chartHeight / gridRows,
+        maxValue,
+        paddingL,
+        paddingR,
+        paddingY
+      );
+      return {
+        name: name,
+        color: color,
+        total: total,
+        points: createLineChartPoints(properties),
+        fills: createLineChartFills(properties, _chartHeight / gridRows),
+        grid: grid[index],
+      };
+    });
 
     return json({
       ...defaultResponse,
@@ -119,11 +180,11 @@ export const action = async ({ request }) => {
       },
       maxValue,
       total,
-      bars: properties,
+      propertiesGrouped: propertiesGrouped,
       dates: {
         from: formatDate(dateFrom),
         to: formatDate(dateTo),
-        diff: diff,
+        diff: dateDiff,
       },
     });
   } catch (error) {
@@ -162,7 +223,7 @@ const Page = () => {
 
   const chartCanvasRef = useRef(null);
   const chartSvgRef = useRef(null);
-  const chartMaskRef = useRef(null);
+
   const renderMessageRef = useRef(null);
   const timelineProgressRef = useRef(null);
 
@@ -208,10 +269,22 @@ const Page = () => {
   };
 
   useEffect(() => {
-    const chartMask = chartMaskRef.current;
-
     if (data !== undefined && data.response.status === 200 && state === 'idle') {
+      const totalDuration = 8;
+      const maskDuration = 3;
+      const maskStagger = 1;
+
       tl.play();
+      tl.to(
+        '.clip-mask-rect',
+        { duration: maskDuration, width: data.config.chartWidth, stagger: maskStagger, ease: 'linear' },
+        '<'
+      );
+      tl.to(
+        '#total',
+        { duration: totalDuration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' },
+        '<'
+      );
 
       setInterfaceState((prevState) => ({
         ...prevState,
@@ -324,11 +397,7 @@ const Page = () => {
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <AppSection>
-          {/* {data ? (
-            <>
-              <pre>{JSON.stringify(data, null, 2)}</pre>
-            </>
-          ) : null} */}
+          {/* {data ? <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> : null} */}
           <RatioFrame ratio={interfaceState.ratio}>
             <MainSvg ref={chartSvgRef} ratio={interfaceState.ratio}>
               {data && data.response.status === 200 && state === 'idle' ? (
@@ -338,44 +407,36 @@ const Page = () => {
                     paddingL={data.config.paddingL}
                     paddingR={data.config.paddingR}
                     color={data.config.color}
+                    totalId='total'
                     username={data.username}
                     title={data.title}
                     dates={data.dates}
                   />
 
-                  {data.bars.map((bar, index) => {
-                    const { x, y, width, outline, height, name, count } = bar;
+                  {data.propertiesGrouped.map((property, index) => {
+                    const {
+                      name,
+                      color,
+                      points,
+                      total,
+                      fills,
+                      grid: { x, y, width },
+                    } = property;
 
                     return (
-                      <g key={index}>
-                        <rect
-                          x={x}
-                          y={y}
-                          width={outline}
-                          height={height}
-                          style={{
-                            fill: data.config.color,
-                            opacity: 0.1,
-                          }}
-                        />
-                        <rect
-                          x={x}
-                          y={y}
-                          width={width}
-                          height={height}
-                          style={{
-                            fill: 'none',
-                            strokeWidth: 3,
-                            stroke: data.config.color,
-                          }}
-                        />
-
+                      <g
+                        key={index}
+                        style={{
+                          transform: `translate(${x}px, ${y}px)`,
+                        }}
+                      >
                         <text
-                          x={data.config.chartWidth / 2}
-                          y={y + 28}
+                          x={0 + data.config.paddingL}
+                          y={0 + data.config.paddingY}
+                          textAnchor='start'
                           style={{
                             fill: '#c9d1d9',
-                            fontSize: '1.4rem',
+                            fontSize: '1.8rem',
                             fontFamily: 'Plus Jakarta Sans',
                             fontWeight: 600,
                             textTransform: 'capitalize',
@@ -385,19 +446,29 @@ const Page = () => {
                         </text>
 
                         <text
-                          x={data.config.chartWidth - data.config.paddingR}
-                          y={y + 32}
+                          id={`sub-title-${index}`}
+                          x={width}
+                          y={0 + data.config.paddingY}
                           textAnchor='end'
                           style={{
-                            fill: '#c9d1d9',
+                            fill: '#f0f6fc',
                             fontSize: '2.6rem',
                             fontFamily: 'Plus Jakarta Sans',
                             fontWeight: 600,
                             textTransform: 'capitalize',
                           }}
                         >
-                          {count}
+                          {total}
                         </text>
+
+                        <LineChartPolyline
+                          clipPathId={`clip-mask-${index}`}
+                          clipPathRectClass='clip-mask-rect'
+                          chartHeight={data.config.chartHeight}
+                          fills={fills}
+                          points={points}
+                          color={color}
+                        />
                       </g>
                     );
                   })}
@@ -446,8 +517,8 @@ const Page = () => {
             <Form method='post' className='flex flex-col gap-4' autoComplete='off'>
               <div className='flex flex-col gap-2'>
                 <label>
-                  username
-                  <input type='text' defaultValue='PaulieScanlon' name='username' disabled={isDisabled} required />
+                  Username
+                  <input type='text' defaultValue='' name='username' disabled={isDisabled} required />
                 </label>
 
                 <Select

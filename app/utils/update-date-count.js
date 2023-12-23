@@ -1,12 +1,12 @@
 import { formatDate } from './format-date';
 
-export const updateDateCount = (sourceDates, defaultDates, path) => {
+export const updateDateCount = (array, defaultDates, countKey) => {
   const startDate = new Date();
-  const keys = path.split('.');
+  const keys = countKey.split('.');
 
   startDate.setDate(startDate.getDate() - defaultDates.length);
 
-  const dateRange = sourceDates.reduce(
+  const dateRange = array.reduce(
     (items, item) => {
       const date = keys.reduce((acc, key) => (acc && acc[key] !== undefined ? acc[key] : undefined), item);
       const sourceDateFormattedString = formatDate(new Date(date));
@@ -22,5 +22,5 @@ export const updateDateCount = (sourceDates, defaultDates, path) => {
     [...defaultDates]
   );
 
-  return { dateRange };
+  return dateRange;
 };

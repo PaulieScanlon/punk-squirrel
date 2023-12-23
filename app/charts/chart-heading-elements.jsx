@@ -4,7 +4,7 @@ const ChartHeadingElements = ({
   paddingR,
   color,
   state,
-  total,
+  totalId,
   owner,
   repo,
   username,
@@ -76,22 +76,21 @@ const ChartHeadingElements = ({
         {username ? username : `${owner} / ${repo}`}
       </text>
 
-      {total ? (
-        <text
-          id={total}
-          x={chartWidth - paddingR}
-          y={188}
-          textAnchor='end'
-          style={{
-            fill: '#f0f6fc',
-            fontSize: '9rem',
-            fontFamily: 'Plus Jakarta Sans',
-            fontWeight: 900,
-          }}
-        >
-          0
-        </text>
-      ) : null}
+      <text
+        id={totalId}
+        x={chartWidth - paddingR}
+        y={188}
+        textAnchor='end'
+        style={{
+          fill: '#f0f6fc',
+          fontSize: '9rem',
+          fontFamily: 'Plus Jakarta Sans',
+          fontWeight: 900,
+        }}
+      >
+        0
+      </text>
+
       <text
         x={chartWidth / 2}
         y={260}

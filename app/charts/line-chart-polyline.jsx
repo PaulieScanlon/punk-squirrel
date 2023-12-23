@@ -1,8 +1,13 @@
-const LineChartPolyline = ({ fills, points, color }) => {
+const LineChartPolyline = ({ clipPathId, clipPathRectId, clipPathRectClass, chartHeight, fills, points, color }) => {
   return (
     <>
+      <defs>
+        <clipPath id={clipPathId}>
+          <rect id={clipPathRectId} className={clipPathRectClass} x='0' y='0' width={0} height={chartHeight} />
+        </clipPath>
+      </defs>
       <polyline
-        clipPath='url(#clip-mask)'
+        clipPath={`url(#${clipPathId})`}
         points={fills}
         style={{
           fill: color,
@@ -12,7 +17,7 @@ const LineChartPolyline = ({ fills, points, color }) => {
       />
 
       <polyline
-        clipPath='url(#clip-mask)'
+        clipPath={`url(#${clipPathId})`}
         points={points}
         style={{
           fill: 'none',

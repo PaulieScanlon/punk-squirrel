@@ -1,0 +1,17 @@
+export const GitHubEventTypes = {
+  CommitCommentEvent: { name: 'Comment', color: '#ff9549' },
+  CreateEvent: { name: 'Create', color: '#3fb950' },
+  DeleteEvent: { name: 'Delete', color: '#f85149' },
+  ForkEvent: { name: 'Fork', color: '#c9d1d9' },
+  GollumEvent: { name: 'Gollum', color: '#2f81f7' },
+  IssueCommentEvent: { name: 'Comment', color: '#ff9549' },
+  IssuesEvent: { name: 'Issues', color: '#ffd33d' },
+  MemberEvent: { name: 'Member', color: '#c9d1d9' },
+  PublicEvent: { name: 'Public', color: '#c9d1d9' },
+  PullRequestEvent: { name: 'Pull Request', color: '#6e40c9' },
+  PullRequestReviewEvent: { name: 'PR Review', color: '#6e40c9' },
+  PullRequestReviewCommentEvent: { name: 'PR Comment', color: '#ff9549' },
+  PushEvent: { name: 'Push', color: '#6e40c9' },
+  ReleaseEvent: { name: 'Release', color: '#2f81f7' },
+  WatchEvent: { name: 'Watch', color: '#ee5ab6' },
+};

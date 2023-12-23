@@ -8,25 +8,21 @@ const isWeekend = (date) => {
 export const createTicks = (array, chartWidth, _chartHeight, paddingR, paddingL, offsetX) => {
   const totalTicks = Math.min(array.length, 30);
 
-  return array
-    .filter((_, index) => {
-      if (totalTicks === 1) {
-        return index === 0 || index === array.length - 1;
-      }
-      return index % Math.floor(array.length / (totalTicks - 1)) === 0;
-    })
-    .map((tick, index) => {
-      const { date } = tick;
+  const result = Array.from({ length: totalTicks }).map((_, index) => {
+    const tickIndex = Math.floor((index / (totalTicks - 1)) * (array.length - 1));
+    const { date } = array[tickIndex];
 
-      const x_ratio = index / (totalTicks - 1);
-      const x = x_ratio * (chartWidth - paddingL - paddingR * 2.8);
-      const y = _chartHeight;
+    const x_ratio = index / (totalTicks - 1);
+    const x = x_ratio * (chartWidth - paddingL - paddingR);
+    const y = _chartHeight;
 
-      return {
-        date: formatTick(date),
-        weekend: isWeekend(date),
-        x: x + paddingL + offsetX / 2,
-        y: y + 45,
-      };
-    });
+    return {
+      date: formatTick(date),
+      weekend: isWeekend(date),
+      x: x + paddingL + offsetX / 6,
+      y: y + 45,
+    };
+  });
+
+  return result;
 };

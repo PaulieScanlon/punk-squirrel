@@ -38,7 +38,7 @@ import { createTicks } from '../../utils/create-ticks';
 import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
 import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
-import { createLegendRange } from '../../utils/create-legend-range';
+import { createYAxisRange } from '../../utils/create-y-axis-range';
 
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
@@ -118,7 +118,7 @@ export const action = async ({ request }) => {
       },
     });
 
-    const { dateRange } = updateDateCount(response, generateDateArray(dateFrom, dateDiff), 'created_at');
+    const dateRange = updateDateCount(response, generateDateArray(dateFrom, dateDiff), 'created_at');
 
     const maxValue = findMaxValue(dateRange, 'count');
     const total = findTotalValue(dateRange, 'count');
@@ -142,7 +142,7 @@ export const action = async ({ request }) => {
       maxValue,
       total,
       ticks: createTicks(dateRange, chartWidth, _chartHeight, paddingR, paddingL + offsetX, offsetX),
-      yAxis: createLegendRange(dateRange, guides.length, 'count'),
+      yAxis: createYAxisRange(dateRange, guides.length, 'count'),
       points: createLineChartPoints(properties),
       fills: createLineChartFills(properties, _chartHeight),
     });
@@ -153,11 +153,6 @@ export const action = async ({ request }) => {
         status: 404,
         message: error.response.data.message,
       },
-      maxValue: 0,
-      total: 0,
-      ticks: [],
-      points: [],
-      fills: [],
     });
   }
 };
@@ -187,7 +182,6 @@ const Page = () => {
 
   const chartCanvasRef = useRef(null);
   const chartSvgRef = useRef(null);
-  const chartMaskRef = useRef(null);
   const renderMessageRef = useRef(null);
   const timelineProgressRef = useRef(null);
 
@@ -242,18 +236,16 @@ const Page = () => {
   };
 
   useEffect(() => {
-    const chartMask = chartMaskRef.current;
-
     if (data !== undefined && data.response.status === 200 && state === 'idle') {
       const duration = calculateAnimationDuration(dates.diff);
-      const stagger = duration / dates.diff;
+      const dateStagger = duration / dates.diff;
 
       tl.play();
-      tl.to(chartMask, { duration: duration, width: data.config.chartWidth, ease: 'linear' });
+      tl.to('#clip-mask-rect', { duration: duration, width: data.config.chartWidth, ease: 'linear' });
       tl.to('#total', { duration: duration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' }, '<');
       tl.to(
         '.date',
-        { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: stagger, ease: 'linear' },
+        { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: dateStagger, ease: 'linear' },
         '<'
       );
 
@@ -388,17 +380,16 @@ const Page = () => {
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <AppSection>
-          {/* {data ? <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> : null} */}
+          {data ? (
+            <>
+              {/* <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> */}
+              {/* <pre>{data.ticks.length}</pre> */}
+            </>
+          ) : null}
           <RatioFrame ratio={interfaceState.ratio}>
             <MainSvg ref={chartSvgRef} ratio={interfaceState.ratio}>
               {data && data.response.status === 200 && state === 'idle' ? (
                 <>
-                  <defs>
-                    <clipPath id='clip-mask'>
-                      <rect ref={chartMaskRef} x='0' y='0' width={0} height={data.config.chartHeight} />
-                    </clipPath>
-                  </defs>
-
                   <YAxis
                     values={data.yAxis}
                     chartHeight={data.config._chartHeight}
@@ -421,14 +412,21 @@ const Page = () => {
                     paddingR={data.config.paddingR}
                     color={data.config.color}
                     state={data.state}
-                    total='total'
+                    totalId='total'
                     owner={data.owner}
                     repo={data.repo}
                     title={data.title}
                     dates={data.dates}
                   />
 
-                  <LineChartPolyline fills={data.fills} points={data.points} color={data.config.color} />
+                  <LineChartPolyline
+                    clipPathId='clip-mask'
+                    clipPathRectId='clip-mask-rect'
+                    chartHeight={data.config.chartHeight}
+                    fills={data.fills}
+                    points={data.points}
+                    color={data.config.color}
+                  />
                   <DateTicks ticks={data.ticks} />
                   <Watermark chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
                 </>
