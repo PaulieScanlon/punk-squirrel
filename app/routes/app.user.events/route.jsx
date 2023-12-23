@@ -73,7 +73,7 @@ export const action = async ({ request }) => {
   const gridCols = 3;
   const gridRows = 2;
   const gridColGap = 0;
-  const gridRowGap = 100;
+  const gridRowGap = 80;
 
   const defaultResponse = {
     title: 'Events',
@@ -468,6 +468,7 @@ const Page = () => {
                           fills={fills}
                           points={points}
                           color={color}
+                          fillOpacity={0.3}
                         />
                       </g>
                     );

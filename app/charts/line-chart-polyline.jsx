@@ -1,4 +1,13 @@
-const LineChartPolyline = ({ clipPathId, clipPathRectId, clipPathRectClass, chartHeight, fills, points, color }) => {
+const LineChartPolyline = ({
+  clipPathId,
+  clipPathRectId,
+  clipPathRectClass,
+  chartHeight,
+  fills,
+  points,
+  color,
+  fillOpacity = 0.1,
+}) => {
   return (
     <>
       <defs>
@@ -11,7 +20,7 @@ const LineChartPolyline = ({ clipPathId, clipPathRectId, clipPathRectClass, char
         points={fills}
         style={{
           fill: color,
-          fillOpacity: 0.1,
+          fillOpacity: fillOpacity,
           stroke: 'none',
         }}
       />
