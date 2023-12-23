@@ -114,7 +114,7 @@ const DefaultLayout = ({ supabase, user, session, children }) => {
           ) : null}
         </nav>
       </header>
-      <div className='relative top-[72px] p-4 mx-auto max-w-8xl h-[calc(100vh-70px)] min-h-full'>{children}</div>
+      <div className='relative px-4 mx-auto max-w-7xl'>{children}</div>
     </>
   );
 };
