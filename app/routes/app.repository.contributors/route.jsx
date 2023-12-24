@@ -18,11 +18,7 @@ import SubmitButton from '../../components/submit-button';
 import MainSvg from '../../charts/main-svg';
 import RatioFrame from '../../charts/ratio-frame';
 import ChartHeadingElements from '../../charts/chart-heading-elements';
-import DateTicks from '../../charts/date-ticks';
-import YAxis from '../../charts/y-axis';
-import HorizontalGuides from '../../charts/horizontal-guides';
-import LineChartPolyline from '../../charts/line-chart-polyline';
-import BarChartVertical from '../../charts/bar-chart-vertical';
+
 import Watermark from '../../charts/watermark';
 import MainCanvas from '../../charts/main-canvas';
 import MainRender from '../../charts/main-render';
@@ -33,13 +29,13 @@ import { generateDateArray } from '../../utils/generate-date-array';
 import { updateDateCount } from '../../utils/update-date-count';
 import { formatDate } from '../../utils/format-date';
 import { createLineChartProperties } from '../../utils/create-line-chart-properties';
-import { createBarChartProperties } from '../../utils/create-bar-chart-properties';
 import { createLineChartPoints } from '../../utils/create-line-chart-points';
 import { createLineChartFills } from '../../utils/create-line-chart-fills';
 import { createTicks } from '../../utils/create-ticks';
 import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
 import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
+import { groupByObject } from '../../utils/group-by-object';
 import { createYAxisRange } from '../../utils/create-y-axis-range';
 
 export const action = async ({ request }) => {
@@ -82,7 +78,7 @@ export const action = async ({ request }) => {
   const guides = [...Array(8).keys()];
 
   const defaultResponse = {
-    title: 'commits',
+    title: 'contributors',
     owner,
     repo,
     state,
@@ -101,7 +97,7 @@ export const action = async ({ request }) => {
       paddingL,
       paddingY,
       guides,
-      color: '#7c72ff',
+      color: state === 'open' ? '#3fb950' : '#f85149',
     },
   };
 
@@ -117,44 +113,38 @@ export const action = async ({ request }) => {
       },
     });
 
-    const dateRange = updateDateCount(response, generateDateArray(dateFrom, dateDiff), 'commit.committer.date');
+    // const responseGrouped = groupByObject(response, 'author.login');
+    // .filter(
+    //   (data) => data.committer.email !== 'noreply@github.com'
+    // );
+    // const responseGrouped = groupByObject(response, 'commit.author.email');
 
-    const maxValue = findMaxValue(dateRange, 'count');
-    const total = findTotalValue(dateRange, 'count');
-    const lineProperties = createLineChartProperties(
-      dateRange,
-      chartWidth,
-      _chartHeight,
-      maxValue,
-      paddingL + offsetX,
-      paddingR,
-      paddingY
-    );
+    // console.log(responseGrouped);
 
-    const barProperties = createBarChartProperties(
-      dateRange,
-      chartWidth,
-      _chartHeight,
-      maxValue,
-      paddingL + offsetX,
-      paddingR,
-      paddingY
-    );
+    // const dateRange = updateDateCount(response, generateDateArray(dateFrom, dateDiff), 'created_at');
+
+    // const maxValue = findMaxValue(dateRange, 'count');
+    // const total = findTotalValue(dateRange, 'count');
+    // const properties = createLineChartProperties(
+    //   dateRange,
+    //   chartWidth,
+    //   _chartHeight,
+    //   maxValue,
+    //   paddingL + offsetX,
+    //   paddingR,
+    //   paddingY
+    // );
 
     return json({
       ...defaultResponse,
       response: {
         raw: response,
+        // responseGrouped: responseGrouped,
         status: 200,
         message: !response.length ? 'No Data' : '',
       },
-      maxValue,
-      total,
-      ticks: createTicks(dateRange, chartWidth, _chartHeight, paddingR, paddingL + offsetX, offsetX),
-      yAxis: createYAxisRange(dateRange, guides.length, 'count'),
-      points: createLineChartPoints(lineProperties),
-      fills: createLineChartFills(lineProperties, _chartHeight),
-      bars: barProperties,
+      // maxValue,
+      // total,
     });
   } catch (error) {
     return json({
@@ -202,7 +192,6 @@ const Page = () => {
     rendering: false,
     frames: [],
     ratio: 1920,
-    type: 'line',
   });
 
   const dateFrom = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
@@ -248,18 +237,10 @@ const Page = () => {
 
   useEffect(() => {
     if (data !== undefined && data.response.status === 200 && state === 'idle') {
-      const duration = calculateAnimationDuration(dates.diff);
-      const dateStagger = duration / dates.diff;
+      const duration = 1;
 
       tl.play();
-      tl.to('#clip-mask-rect', { duration: duration, width: data.config.chartWidth, ease: 'linear' });
       tl.to('#total', { duration: duration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' }, '<');
-      tl.to(
-        '.date',
-        { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: dateStagger, ease: 'linear' },
-        '<'
-      );
-
       setInterfaceState((prevState) => ({
         ...prevState,
         animation: 'active',
@@ -361,15 +342,6 @@ const Page = () => {
     }));
   };
 
-  const handleType = (value) => {
-    revalidator.revalidate();
-    setInterfaceState((prevState) => ({
-      ...prevState,
-      animation: 'idle',
-      type: value,
-    }));
-  };
-
   const handleDate = (value) => {
     setDates((prevState) => ({
       ...prevState,
@@ -396,32 +368,33 @@ const Page = () => {
     <>
       <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
         <AppSection>
-          {/* {data ? <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> : null} */}
+          {data ? (
+            <>
+              <pre>{JSON.stringify(data.response.raw, null, 2)}</pre>
+              {/* <pre>{JSON.stringify(data.response.responseGrouped, null, 2)}</pre> */}
+            </>
+          ) : null}
           <RatioFrame ratio={interfaceState.ratio}>
+            {/* {data && data.response.status === 200 && state === 'idle' ? (
+              <ul>
+                {data.response.raw.map((obj, index) => {
+                  const {
+                    author: { login },
+                  } = obj;
+
+                  return <li key={index}>{login}</li>;
+                })}
+              </ul>
+            ) : null} */}
             <MainSvg ref={chartSvgRef} ratio={interfaceState.ratio}>
               {data && data.response.status === 200 && state === 'idle' ? (
                 <>
-                  <YAxis
-                    values={data.yAxis}
-                    chartHeight={data.config._chartHeight}
-                    paddingY={data.config.paddingY}
-                    paddingL={data.config.paddingL}
-                  />
-
-                  <HorizontalGuides
-                    guides={data.config.guides}
-                    chartWidth={data.config.chartWidth}
-                    chartHeight={data.config._chartHeight}
-                    paddingL={data.config.paddingL + data.config.offsetX}
-                    paddingR={data.config.paddingR}
-                    paddingY={data.config.paddingY}
-                  />
-
                   <ChartHeadingElements
                     chartWidth={data.config.chartWidth}
                     paddingL={data.config.paddingL}
                     paddingR={data.config.paddingR}
                     color={data.config.color}
+                    state={data.state}
                     totalId='total'
                     owner={data.owner}
                     repo={data.repo}
@@ -429,26 +402,6 @@ const Page = () => {
                     dates={data.dates}
                   />
 
-                  {interfaceState.type === 'line' ? (
-                    <LineChartPolyline
-                      clipPathId='clip-mask'
-                      clipPathRectId='clip-mask-rect'
-                      chartHeight={data.config.chartHeight}
-                      fills={data.fills}
-                      points={data.points}
-                      color={data.config.color}
-                    />
-                  ) : (
-                    <BarChartVertical
-                      clipPathId='clip-mask'
-                      clipPathRectId='clip-mask-rect'
-                      chartHeight={data.config.chartHeight}
-                      bars={data.bars}
-                      color={data.config.color}
-                    />
-                  )}
-
-                  <DateTicks ticks={data.ticks} />
                   <Watermark chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
                 </>
               ) : null}
@@ -461,6 +414,7 @@ const Page = () => {
                 chartHeight={data.config.chartHeight}
               />
             ) : null}
+
             <PlayerControls
               isPlaying={interfaceState.animation != 'idle'}
               onPlayPause={handlePlayPause}
@@ -489,14 +443,14 @@ const Page = () => {
               }
             />
           </RatioFrame>
-          <FormSidebar title='Commits' dates={dates}>
+          <FormSidebar title='Contributors' dates={dates}>
             <Form method='post' className='flex flex-col gap-4' autoComplete='off'>
               <input hidden name='dateFrom' readOnly value={dates.from} />
               <input hidden name='dateTo' readOnly value={dates.to} />
               <input hidden name='dateDiff' readOnly value={dates.diff} />
-
               <div className='flex flex-col gap-2'>
                 <DatePicker label='End Date' name='to' onChange={handleDate} disabled={isDisabled} />
+
                 <Select
                   label='Period'
                   name='from'
@@ -514,25 +468,13 @@ const Page = () => {
                   ]}
                 />
 
-                <Select
-                  label='Type'
-                  name='type'
-                  placeholder='Select a type'
-                  onChange={handleType}
-                  disabled={isDisabled}
-                  items={[
-                    { name: 'Line', value: 'line' },
-                    { name: 'Bar', value: 'bar' },
-                  ]}
-                />
-
                 <label>
                   Owner
-                  <input type='text' defaultValue='' name='owner' disabled={isDisabled} required />
+                  <input type='text' defaultValue='vercel' name='owner' disabled={isDisabled} required />
                 </label>
                 <label>
                   Repository
-                  <input type='text' defaultValue='' name='repo' disabled={isDisabled} required />
+                  <input type='text' defaultValue='next.js' name='repo' disabled={isDisabled} required />
                 </label>
 
                 <Select

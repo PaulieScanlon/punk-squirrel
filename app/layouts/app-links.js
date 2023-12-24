@@ -14,6 +14,10 @@ export const appLinks = [
         to: '/app/repository/commits',
         text: 'Commits',
       },
+      // {
+      //   to: '/app/repository/contributors',
+      //   text: 'Contributors',
+      // },
     ],
   },
   {

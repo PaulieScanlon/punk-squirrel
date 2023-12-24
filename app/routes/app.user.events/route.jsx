@@ -19,6 +19,7 @@ import MainSvg from '../../charts/main-svg';
 import RatioFrame from '../../charts/ratio-frame';
 import ChartHeadingElements from '../../charts/chart-heading-elements';
 import LineChartPolyline from '../../charts/line-chart-polyline';
+import BarChartVertical from '../../charts/bar-chart-vertical';
 import Watermark from '../../charts/watermark';
 import MainCanvas from '../../charts/main-canvas';
 import MainRender from '../../charts/main-render';
@@ -29,12 +30,13 @@ import { generateDateArray } from '../../utils/generate-date-array';
 import { updateDateCount } from '../../utils/update-date-count';
 import { formatDate } from '../../utils/format-date';
 import { createLineChartProperties } from '../../utils/create-line-chart-properties';
+import { createBarChartProperties } from '../../utils/create-bar-chart-properties';
 import { createLineChartPoints } from '../../utils/create-line-chart-points';
 import { createLineChartFills } from '../../utils/create-line-chart-fills';
 import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
 import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
-import { groupBy } from '../../utils/group-by';
+import { groupByString } from '../../utils/group-by-string';
 import { GitHubEventTypes } from '../../utils/github-events';
 
 export const action = async ({ request }) => {
@@ -102,7 +104,7 @@ export const action = async ({ request }) => {
     const dateTo = new Date(response.data[0].created_at);
     const dateDiff = Math.ceil((dateTo - dateFrom) / (24 * 60 * 60 * 1000));
 
-    const responseGrouped = groupBy(response.data, 'type');
+    const responseGrouped = groupByString(response.data, 'type');
 
     const eventsGrouped = Object.keys(responseGrouped)
       .map((object) => {
@@ -150,7 +152,7 @@ export const action = async ({ request }) => {
 
     const propertiesGrouped = Object.keys(eventsGrouped).map((_, index) => {
       const { name, color, total, dateRange } = eventsGrouped[index];
-      const properties = createLineChartProperties(
+      const lineProperties = createLineChartProperties(
         dateRange,
         chartWidth / gridCols,
         _chartHeight / gridRows,
@@ -159,12 +161,24 @@ export const action = async ({ request }) => {
         paddingR,
         paddingY
       );
+
+      const barProperties = createBarChartProperties(
+        dateRange,
+        chartWidth / gridCols,
+        _chartHeight / gridRows,
+        maxValue,
+        paddingL,
+        paddingR,
+        paddingY
+      );
+
       return {
         name: name,
         color: color,
         total: total,
-        points: createLineChartPoints(properties),
-        fills: createLineChartFills(properties, _chartHeight / gridRows),
+        points: createLineChartPoints(lineProperties),
+        fills: createLineChartFills(lineProperties, _chartHeight / gridRows),
+        bars: barProperties,
         grid: grid[index],
       };
     });
@@ -232,6 +246,7 @@ const Page = () => {
     rendering: false,
     frames: [],
     ratio: 1920,
+    type: 'line',
   });
 
   const tl = useMemo(
@@ -385,6 +400,15 @@ const Page = () => {
     }));
   };
 
+  const handleType = (value) => {
+    revalidator.revalidate();
+    setInterfaceState((prevState) => ({
+      ...prevState,
+      animation: 'idle',
+      type: value,
+    }));
+  };
+
   const handleNav = () => {
     setIsNavOpen(!isNavOpen);
   };
@@ -418,6 +442,7 @@ const Page = () => {
                       points,
                       total,
                       fills,
+                      bars,
                       grid: { x, y, width },
                     } = property;
 
@@ -459,15 +484,26 @@ const Page = () => {
                           {total}
                         </text>
 
-                        <LineChartPolyline
-                          clipPathId={`clip-mask-${index}`}
-                          clipPathRectClass='clip-mask-rect'
-                          chartHeight={data.config.chartHeight}
-                          fills={fills}
-                          points={points}
-                          color={color}
-                          fillOpacity={0.3}
-                        />
+                        {interfaceState.type === 'line' ? (
+                          <LineChartPolyline
+                            clipPathId={`clip-mask-${index}`}
+                            clipPathRectClass='clip-mask-rect'
+                            chartHeight={data.config.chartHeight}
+                            fills={fills}
+                            points={points}
+                            color={color}
+                            fillOpacity={1}
+                          />
+                        ) : (
+                          <BarChartVertical
+                            clipPathId={`clip-mask-${index}`}
+                            clipPathRectClass='clip-mask-rect'
+                            chartHeight={data.config.chartHeight}
+                            bars={bars}
+                            color={color}
+                            fillOpacity={1}
+                          />
+                        )}
                       </g>
                     );
                   })}
@@ -519,6 +555,18 @@ const Page = () => {
                   Username
                   <input type='text' defaultValue='' name='username' disabled={isDisabled} required />
                 </label>
+
+                <Select
+                  label='Type'
+                  name='type'
+                  placeholder='Select a type'
+                  onChange={handleType}
+                  disabled={isDisabled}
+                  items={[
+                    { name: 'Line', value: 'line' },
+                    { name: 'Bar', value: 'bar' },
+                  ]}
+                />
 
                 <Select
                   label='Ratio'
