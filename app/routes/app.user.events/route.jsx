@@ -63,7 +63,6 @@ export const action = async ({ request }) => {
 
   const chartWidth = ratio;
   const chartHeight = 1080;
-  const offsetX = 60;
   const offsetY = 120;
   const _chartHeight = chartHeight - offsetY;
   const paddingL = 60;
@@ -72,7 +71,7 @@ export const action = async ({ request }) => {
 
   const gridCols = 3;
   const gridRows = 2;
-  const gridColGap = 0;
+  const gridColGap = -60;
   const gridRowGap = 80;
 
   const defaultResponse = {
@@ -82,7 +81,6 @@ export const action = async ({ request }) => {
       chartWidth,
       chartHeight,
       _chartHeight,
-      offsetX,
       offsetY,
       paddingR,
       paddingL,
@@ -127,12 +125,12 @@ export const action = async ({ request }) => {
     const maxValue = findMaxValue(eventsFlat, 'count');
     const total = findTotalValue(eventsFlat, 'count');
 
-    const createGrid = (columns, rows, gridColGap, gridRowGap, width, height, offsetY, offsetX) => {
+    const createGrid = (columns, rows, gridColGap, gridRowGap, width, height, offsetY, paddingR) => {
       const grid = Array.from({ length: rows }, (_, row) =>
         Array.from({ length: columns }, (_, col) => ({
           x: col * (width + gridColGap),
           y: row * (height + gridRowGap) + offsetY,
-          width: width - offsetX,
+          width: width - paddingR,
         }))
       ).flat();
 
@@ -144,10 +142,10 @@ export const action = async ({ request }) => {
       gridRows,
       gridColGap,
       gridRowGap,
-      chartWidth / gridCols,
+      chartWidth / gridCols + paddingR / 2,
       _chartHeight / 2 / gridRows,
       offsetY,
-      offsetX
+      paddingR
     );
 
     const propertiesGrouped = Object.keys(eventsGrouped).map((_, index) => {
