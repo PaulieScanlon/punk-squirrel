@@ -408,6 +408,15 @@ const Page = () => {
     }));
   };
 
+  useEffect(() => {
+    if (state === 'submitting' || state === 'loading') {
+      setInterfaceState((prevState) => ({
+        ...prevState,
+        download: null,
+      }));
+    }
+  }, [state]);
+
   const handleNav = () => {
     setIsNavOpen(!isNavOpen);
   };
