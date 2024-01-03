@@ -307,6 +307,8 @@ const Page = () => {
         { duration: totalDuration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' },
         '<'
       );
+      // this adds a 3 second end frame
+      tl.to('#watermark', { duration: 3, opacity: 1, ease: 'linear' });
 
       setInterfaceState((prevState) => ({
         ...prevState,

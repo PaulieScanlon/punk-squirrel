@@ -268,6 +268,8 @@ const Page = () => {
         { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: dateStagger, ease: 'linear' },
         '<'
       );
+      // this adds a 3 second end frame
+      tl.to('#watermark', { duration: 3, opacity: 1, ease: 'linear' });
 
       setInterfaceState((prevState) => ({
         ...prevState,

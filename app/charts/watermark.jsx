@@ -2,6 +2,7 @@ const Watermark = ({ chartWidth, chartHeight }) => {
   return (
     <>
       <text
+        id='watermark'
         x={chartWidth / 2}
         y={chartHeight - 57}
         textAnchor='middle'
