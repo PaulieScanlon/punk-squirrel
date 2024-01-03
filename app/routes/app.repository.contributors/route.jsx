@@ -362,7 +362,11 @@ const Page = () => {
     setIsNavOpen(!isNavOpen);
   };
 
-  const isDisabled = (state !== 'idle' && interfaceState.animation !== 'idle') || interfaceState.rendering;
+  const isDisabled =
+    (state !== 'idle' && interfaceState.animation !== 'idle') ||
+    state !== 'idle' ||
+    interfaceState.animation !== 'idle' ||
+    interfaceState.rendering;
 
   return (
     <>
