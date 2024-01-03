@@ -1,6 +1,4 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { Form, useActionData, useRevalidator, useOutletContext, useNavigation } from '@remix-run/react';
 import { json, redirect } from '@remix-run/node';
 import { Octokit } from '@octokit/rest';
@@ -44,6 +42,7 @@ import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
 import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
 import { createYAxisRange } from '../../utils/create-y-axis-range';
+import { createVideoFromFrames } from '../../utils/create-video-from-frames';
 
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
@@ -317,96 +316,37 @@ const Page = () => {
   };
 
   const handleRender = async () => {
+    const outputName = `${data.title}-${data.owner}-${data.repo}-${data.dates.rawTo}-${interfaceState.type}-${interfaceState.ratio}x1080`;
+
     setInterfaceState((prevState) => ({
       ...prevState,
       rendering: true,
-      output: `${data.title}-${data.owner}-${data.repo}-${data.dates.rawTo}-${interfaceState.type}-${interfaceState.ratio}x1080`,
+      output: outputName,
     }));
 
-    renderMessageRef.current.innerHTML = 'Loading: ffmpeg/WASM';
+    const generateVideo = async () => {
+      try {
+        const videoSrc = await createVideoFromFrames(
+          data,
+          renderMessageRef.current,
+          chartCanvasRef.current,
+          interfaceState.frames,
+          data.config,
+          interfaceState.ratio,
+          outputName
+        );
 
-    const ffmpeg = new FFmpeg();
-
-    const baseURL = '/@ffmpeg/core@0.12.6/dist/esm';
-    await ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-      classWorkerURL: '../../@ffmpeg/ffmpeg/dist/esm/worker.js',
-    });
-
-    const canvas = chartCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let canvasFrames = [];
-    let inputPaths = [];
-
-    let inc = 0;
-
-    const createRasterizedImage = async () => {
-      const virtualImage = new Image();
-      virtualImage.src = interfaceState.frames[inc];
-
-      virtualImage.addEventListener('load', async () => {
-        renderMessageRef.current.innerHTML = !data
-          ? ''
-          : `Preparing frame: ${inc} of ${interfaceState.frames.length - 1}`;
-        ctx.clearRect(0, 0, data.config.chartWidth, data.config.chartHeight);
-        ctx.drawImage(virtualImage, 0, 0, data.config.chartWidth, data.config.chartHeight);
-        canvasFrames.push(canvas.toDataURL('image/jpeg'));
-        inc++;
-        if (inc < interfaceState.frames.length) {
-          createRasterizedImage();
-        } else {
-          // console.log('onComplete');
-
-          for (let index = 0; index < canvasFrames.length; index++) {
-            const name = `frame-${index}.jpeg`;
-            const file = canvasFrames[index];
-            renderMessageRef.current.innerHTML = `Writing file: ${name}`;
-            await ffmpeg.writeFile(name, await fetchFile(file));
-            inputPaths.push(`file ${name} duration 0.1`);
-          }
-
-          await ffmpeg.writeFile('input_frames.txt', inputPaths.join('\n'));
-          renderMessageRef.current.innerHTML = 'Transcoding start';
-
-          ffmpeg.on('progress', ({ progress, time }) => {
-            renderMessageRef.current.innerHTML = `Transcoding: ${time / 1000000}s`;
-          });
-
-          await ffmpeg.exec([
-            '-f',
-            'concat',
-            '-r',
-            '60',
-            '-i',
-            'input_frames.txt',
-            '-vcodec',
-            'libx264',
-            '-b:v',
-            '3000k',
-            '-s',
-            `${interfaceState.ratio}x1080`,
-            `${interfaceState.output}.mp4`,
-          ]);
-
-          const data = await ffmpeg.readFile(`${interfaceState.output}.mp4`);
-          const src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-          renderMessageRef.current.innerHTML = 'Transcoding complete';
-
-          // TODO don't set rendering to false until after ffmpeg/WASM has completed
-          setInterfaceState((prevState) => ({
-            ...prevState,
-            rendering: false,
-            download: src,
-          }));
-        }
-      });
-
-      virtualImage.addEventListener('error', (error) => {
-        // console.error('virtualImage.error: ', error);
-      });
+        setInterfaceState((prevState) => ({
+          ...prevState,
+          rendering: false,
+          download: videoSrc,
+        }));
+      } catch (error) {
+        console.error('Error:', error);
+      }
     };
-    createRasterizedImage();
+
+    generateVideo();
   };
 
   const handleRatio = (value) => {
