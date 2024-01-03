@@ -113,13 +113,9 @@ export const action = async ({ request }) => {
       },
     });
 
-    // const responseGrouped = groupByObject(response, 'author.login');
-    // .filter(
-    //   (data) => data.committer.email !== 'noreply@github.com'
-    // );
-    // const responseGrouped = groupByObject(response, 'commit.author.email');
+    const responseGrouped = groupByObject(response, 'author.login');
 
-    // console.log(responseGrouped);
+    console.log(responseGrouped);
 
     // const dateRange = updateDateCount(response, generateDateArray(dateFrom, dateDiff), 'created_at');
 
@@ -139,7 +135,7 @@ export const action = async ({ request }) => {
       ...defaultResponse,
       response: {
         raw: response,
-        // responseGrouped: responseGrouped,
+        responseGrouped: responseGrouped,
         status: 200,
         message: !response.length ? 'No Data' : '',
       },
@@ -370,8 +366,8 @@ const Page = () => {
         <AppSection>
           {data ? (
             <>
-              <pre>{JSON.stringify(data.response.raw, null, 2)}</pre>
-              {/* <pre>{JSON.stringify(data.response.responseGrouped, null, 2)}</pre> */}
+              {/* <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> */}
+              <pre>{JSON.stringify(data.response.responseGrouped, null, 2)}</pre>
             </>
           ) : null}
           <RatioFrame ratio={interfaceState.ratio}>
