@@ -14,6 +14,7 @@ import Select from '../../components/select';
 import ErrorAnnounce from '../../components/error-announce';
 import PlayerControls from '../../components/player-controls';
 import SubmitButton from '../../components/submit-button';
+import MainRender from '../../components/main-render';
 
 import MainSvg from '../../charts/main-svg';
 import RatioFrame from '../../charts/ratio-frame';
@@ -25,7 +26,7 @@ import LineChartPolyline from '../../charts/line-chart-polyline';
 import BarChartVertical from '../../charts/bar-chart-vertical';
 import Watermark from '../../charts/watermark';
 import MainCanvas from '../../charts/main-canvas';
-import MainRender from '../../components/main-render';
+import EndFrame from '../../charts/end-frame';
 
 import { supabaseServer } from '../../supabase.server';
 
@@ -269,6 +270,12 @@ const Page = () => {
       );
       // this adds a 3 second end frame
       tl.to('#watermark', { duration: 3, opacity: 1, ease: 'linear' });
+      tl.to('#endframe-bg', { duration: 0.1, opacity: 1, ease: 'linear' });
+      tl.to('#endframe-logo', { duration: 0.3, opacity: 1, ease: 'linear' });
+      tl.to('#endframe-title', { duration: 0.3, opacity: 1, ease: 'linear' });
+      tl.to('#endframe-url', { duration: 0.3, opacity: 1, ease: 'linear' });
+      // this adds a 3 second end frame
+      tl.to('#endframe-null', { duration: 3, opacity: 1, ease: 'linear' });
 
       setInterfaceState((prevState) => ({
         ...prevState,
@@ -493,6 +500,7 @@ const Page = () => {
 
                   <DateTicks ticks={data.ticks} />
                   <Watermark chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
+                  <EndFrame chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
                 </>
               ) : null}
             </MainSvg>

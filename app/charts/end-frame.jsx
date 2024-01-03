@@ -1,9 +1,37 @@
-const Watermark = ({ chartWidth, chartHeight }) => {
+const EndFrame = ({ chartWidth, chartHeight }) => {
   return (
     <>
-      <g
+      <rect
+        id='endframe-null'
+        x={0}
+        y={0}
+        width={0}
+        height={0}
         style={{
-          transform: `translate(${chartWidth / 2 - 170}px, ${chartHeight - 76}px)`,
+          fill: 'none',
+          stroke: 'none',
+          opacity: 0,
+        }}
+      />
+      <rect
+        id='endframe-bg'
+        x={0}
+        y={0}
+        width={chartWidth}
+        height={chartHeight}
+        style={{
+          fill: '#0d1117',
+          stroke: 'none',
+          opacity: 0,
+        }}
+      />
+      <g
+        id='endframe-logo'
+        style={{
+          transform: `translate(${chartWidth / 2 - 20}px, ${400}px) scale(18)`,
+          transformOrigin: 'center',
+          transformBox: 'fill-box',
+          opacity: 0,
         }}
       >
         <path
@@ -56,15 +84,31 @@ const Watermark = ({ chartWidth, chartHeight }) => {
         />
       </g>
       <text
-        id='watermark'
-        x={chartWidth / 2 + 5}
-        y={chartHeight - 57}
+        id='endframe-title'
+        x={chartWidth / 2}
+        y={800}
         textAnchor='middle'
         style={{
           fill: '#f0f6fc',
-          fontSize: '1.6rem',
+          fontSize: '8rem',
           fontFamily: 'Plus Jakarta Sans',
-          fontWeight: 600,
+          fontWeight: 900,
+          opacity: 0,
+        }}
+      >
+        Punk Squirrel
+      </text>
+      <text
+        id='endframe-url'
+        x={chartWidth / 2}
+        y={880}
+        textAnchor='middle'
+        style={{
+          fill: '#f0f6fc',
+          fontSize: '2.2rem',
+          fontFamily: 'Plus Jakarta Sans',
+          fontWeight: 400,
+          opacity: 0,
         }}
       >
         www.punksquirrel.app
@@ -73,4 +117,4 @@ const Watermark = ({ chartWidth, chartHeight }) => {
   );
 };
 
-export default Watermark;
+export default EndFrame;
