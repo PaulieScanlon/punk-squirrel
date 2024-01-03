@@ -1,0 +1,12 @@
+diff --git a/node_modules/@ffmpeg/util/package.json b/node_modules/@ffmpeg/util/package.json
+index 3afedb4..50f2e6e 100644
+--- a/node_modules/@ffmpeg/util/package.json
++++ b/node_modules/@ffmpeg/util/package.json
+@@ -4,6 +4,7 @@
+   "description": "browser utils for @ffmpeg/*",
+   "main": "./dist/cjs/index.js",
+   "types": "./dist/cjs/index.d.ts",
++  "type": "module",
+   "exports": {
+     ".": {
+       "types": "./dist/cjs/index.d.ts",
