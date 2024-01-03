@@ -15,8 +15,8 @@ const LineChartPolyline = ({
           <rect id={clipPathRectId} className={clipPathRectClass} x='0' y='0' width={0} height={chartHeight} />
         </clipPath>
         <linearGradient id='fill-gradient' x1='0%' y1='0%' x2='0%' y2='100%'>
-          <stop offset='0%' stop-color={color} stop-opacity={fillOpacity} />
-          <stop offset='100%' stop-color={color} stop-opacity='0' />
+          <stop offset='0%' stopColor={color} stopOpacity={fillOpacity} />
+          <stop offset='100%' stopColor={color} stopOpacity='0' />
         </linearGradient>
       </defs>
       <polyline

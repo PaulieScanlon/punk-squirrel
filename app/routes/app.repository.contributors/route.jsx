@@ -21,7 +21,7 @@ import ChartHeadingElements from '../../charts/chart-heading-elements';
 
 import Watermark from '../../charts/watermark';
 import MainCanvas from '../../charts/main-canvas';
-import MainRender from '../../charts/main-render';
+import MainRender from '../../components/main-render';
 
 import { supabaseServer } from '../../supabase.server';
 

@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import { Form, useActionData, useRevalidator, useOutletContext, useNavigation } from '@remix-run/react';
 import { json, redirect } from '@remix-run/node';
 import { Octokit } from '@octokit/rest';
@@ -25,13 +27,14 @@ import LineChartPolyline from '../../charts/line-chart-polyline';
 import BarChartVertical from '../../charts/bar-chart-vertical';
 import Watermark from '../../charts/watermark';
 import MainCanvas from '../../charts/main-canvas';
-import MainRender from '../../charts/main-render';
+import MainRender from '../../components/main-render';
 
 import { supabaseServer } from '../../supabase.server';
 
 import { generateDateArray } from '../../utils/generate-date-array';
 import { updateDateCount } from '../../utils/update-date-count';
 import { formatDate } from '../../utils/format-date';
+import { formatFilenameDate } from '../../utils/format-filename-date';
 import { createLineChartProperties } from '../../utils/create-line-chart-properties';
 import { createBarChartProperties } from '../../utils/create-bar-chart-properties';
 import { createLineChartPoints } from '../../utils/create-line-chart-points';
@@ -89,6 +92,7 @@ export const action = async ({ request }) => {
     dates: {
       from: formatDate(dateFrom),
       to: formatDate(dateTo),
+      rawTo: formatFilenameDate(new Date()),
       diff: dateDiff,
     },
     config: {
@@ -200,6 +204,8 @@ const Page = () => {
     animation: 'idle',
     timeline: 0,
     rendering: false,
+    download: null,
+    output: '',
     frames: [],
     ratio: 1920,
     type: 'line',
@@ -312,15 +318,28 @@ const Page = () => {
     setInterfaceState((prevState) => ({
       ...prevState,
       rendering: true,
+      output: `${data.title}-${data.owner}-${data.repo}-${data.dates.rawTo}-${interfaceState.type}-${interfaceState.ratio}x1080`,
     }));
+
+    renderMessageRef.current.innerHTML = 'Loading: ffmpeg/WASM';
+
+    const ffmpeg = new FFmpeg();
+
+    const baseURL = '/@ffmpeg/core@0.12.6/dist/esm';
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      classWorkerURL: '../../@ffmpeg/ffmpeg/dist/esm/worker.js',
+    });
 
     const canvas = chartCanvasRef.current;
     const ctx = canvas.getContext('2d');
     let canvasFrames = [];
+    let inputPaths = [];
 
     let inc = 0;
 
-    const createRasterizedImage = () => {
+    const createRasterizedImage = async () => {
       const virtualImage = new Image();
       virtualImage.src = interfaceState.frames[inc];
 
@@ -336,11 +355,47 @@ const Page = () => {
           createRasterizedImage();
         } else {
           // console.log('onComplete');
-          renderMessageRef.current.innerHTML = 'TODO: ffmpeg/WASM progress here';
+
+          for (let index = 0; index < canvasFrames.length; index++) {
+            const name = `frame-${index}.jpeg`;
+            const file = canvasFrames[index];
+            renderMessageRef.current.innerHTML = `Writing file: ${name}`;
+            await ffmpeg.writeFile(name, await fetchFile(file));
+            inputPaths.push(`file ${name} duration 0.1`);
+          }
+
+          await ffmpeg.writeFile('input_frames.txt', inputPaths.join('\n'));
+          renderMessageRef.current.innerHTML = 'Transcoding start';
+
+          ffmpeg.on('progress', ({ progress, time }) => {
+            renderMessageRef.current.innerHTML = `Transcoding: ${time / 1000000}s`;
+          });
+
+          await ffmpeg.exec([
+            '-f',
+            'concat',
+            '-r',
+            '60',
+            '-i',
+            'input_frames.txt',
+            '-vcodec',
+            'libx264',
+            '-b:v',
+            '3000k',
+            '-s',
+            `${interfaceState.ratio}x1080`,
+            `${interfaceState.output}.mp4`,
+          ]);
+
+          const data = await ffmpeg.readFile(`${interfaceState.output}.mp4`);
+          const src = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
+          renderMessageRef.current.innerHTML = 'Transcoding complete';
+
           // TODO don't set rendering to false until after ffmpeg/WASM has completed
           setInterfaceState((prevState) => ({
             ...prevState,
             rendering: false,
+            download: src,
           }));
         }
       });
@@ -353,37 +408,53 @@ const Page = () => {
   };
 
   const handleRatio = (value) => {
-    revalidator.revalidate();
+    handleRevalidate();
     setInterfaceState((prevState) => ({
       ...prevState,
       animation: 'idle',
       ratio: value,
+      download: null,
     }));
   };
 
   const handleType = (value) => {
-    revalidator.revalidate();
+    handleRevalidate();
     setInterfaceState((prevState) => ({
       ...prevState,
       animation: 'idle',
       type: value,
+      download: null,
     }));
   };
 
   const handleDate = (value) => {
+    handleRevalidate();
     setDates((prevState) => ({
       ...prevState,
       to: new Date(value),
       from: new Date(new Date(value) - dates.diff * 24 * 60 * 60 * 1000),
     }));
+    setInterfaceState((prevState) => ({
+      ...prevState,
+      download: null,
+    }));
   };
 
   const handlePeriod = (value) => {
+    handleRevalidate();
     setDates((prevState) => ({
       ...prevState,
       from: new Date(new Date(dates.to) - value * 24 * 60 * 60 * 1000),
       diff: value,
     }));
+    setInterfaceState((prevState) => ({
+      ...prevState,
+      download: null,
+    }));
+  };
+
+  const handleRevalidate = () => {
+    revalidator.revalidate();
   };
 
   const handleNav = () => {
@@ -487,6 +558,8 @@ const Page = () => {
                 interfaceState.rendering ||
                 data.response.status !== 200
               }
+              download={interfaceState.download}
+              output={interfaceState.output}
             />
           </RatioFrame>
           <FormSidebar title='Commits' dates={dates}>
