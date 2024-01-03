@@ -58,7 +58,7 @@ const Page = () => {
           <div className='p-8 bg-brand-surface-0'>
             <div className='flex items-center gap-6'>
               <img
-                src='https://avatars.githubusercontent.com/u/1465706?v=4'
+                src={ghUser.avatar_url}
                 alt={ghUser.name}
                 className='m-0 w-28 h-28 overflow-hidden rounded-full ring ring-brand-light-gray'
               />
