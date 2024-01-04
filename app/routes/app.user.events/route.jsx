@@ -27,6 +27,7 @@ import BarChartVertical from '../../charts/bar-chart-vertical';
 import Watermark from '../../charts/watermark';
 import MainCanvas from '../../charts/main-canvas';
 import EndFrame from '../../charts/end-frame';
+import EventLegend from '../../charts/event-legend';
 
 import { supabaseServer } from '../../supabase.server';
 
@@ -46,7 +47,7 @@ import { groupByString } from '../../utils/group-by-string';
 import { GitHubEventTypes } from '../../utils/github-events';
 import { createYAxisRange } from '../../utils/create-y-axis-range';
 import { createVideoFromFrames } from '../../utils/create-video-from-frames';
-import EventLegend from '../../charts/event-legend';
+import { formatFilename } from '../../utils/format-filename';
 
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
@@ -377,7 +378,9 @@ const Page = () => {
   };
 
   const handleRender = async () => {
-    const outputName = `${data.title}-${data.username}-${data.dates.rawTo}-${interfaceState.type}-${interfaceState.ratio}x1080`;
+    const outputName = `${formatFilename(data.title)}-${data.username}-${data.dates.rawTo}-${formatFilename(
+      data.config.bar.name
+    )}-${formatFilename(data.config.line.name)}-${interfaceState.ratio}x1080`;
 
     setInterfaceState((prevState) => ({
       ...prevState,
