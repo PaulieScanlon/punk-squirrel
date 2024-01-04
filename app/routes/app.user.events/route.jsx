@@ -237,8 +237,8 @@ const Page = () => {
   });
 
   const selectAEvents = [
-    { name: 'Push', value: 'PushEvent' },
     { name: 'Pull Request', value: 'PullRequestEvent' },
+    { name: 'Push', value: 'PushEvent' },
     { name: 'Pull Request Review', value: 'PullRequestReviewEvent' },
     { name: 'Pull Request Comment', value: 'PullRequestReviewCommentEvent' },
     { name: 'Commit Comment', value: 'CommitCommentEvent' },
@@ -251,8 +251,8 @@ const Page = () => {
   ];
 
   const selectBEvents = [
-    { name: 'Pull Request', value: 'PullRequestEvent' },
     { name: 'Push', value: 'PushEvent' },
+    { name: 'Pull Request', value: 'PullRequestEvent' },
     { name: 'Pull Request Review', value: 'PullRequestReviewEvent' },
     { name: 'Pull Request Comment', value: 'PullRequestReviewCommentEvent' },
     { name: 'Commit Comment', value: 'CommitCommentEvent' },
