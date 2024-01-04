@@ -28,7 +28,7 @@ const EndFrame = ({ chartWidth, chartHeight }) => {
       <g
         id='endframe-logo'
         style={{
-          transform: `translate(${chartWidth / 2 - 20}px, ${400}px) scale(18)`,
+          transform: `translate(${chartWidth / 2 - 20}px, ${440}px) scale(10)`,
           transformOrigin: 'center',
           transformBox: 'fill-box',
           opacity: 0,
@@ -86,11 +86,11 @@ const EndFrame = ({ chartWidth, chartHeight }) => {
       <text
         id='endframe-title'
         x={chartWidth / 2}
-        y={800}
+        y={680}
         textAnchor='middle'
         style={{
           fill: '#f0f6fc',
-          fontSize: '8rem',
+          fontSize: '5rem',
           fontFamily: 'Plus Jakarta Sans',
           fontWeight: 900,
           opacity: 0,
@@ -101,11 +101,11 @@ const EndFrame = ({ chartWidth, chartHeight }) => {
       <text
         id='endframe-url'
         x={chartWidth / 2}
-        y={880}
+        y={740}
         textAnchor='middle'
         style={{
           fill: '#f0f6fc',
-          fontSize: '2.2rem',
+          fontSize: '2rem',
           fontFamily: 'Plus Jakarta Sans',
           fontWeight: 400,
           opacity: 0,
