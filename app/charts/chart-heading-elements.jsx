@@ -34,7 +34,7 @@ const ChartHeadingElements = ({
 
           <text
             x={59}
-            y={29}
+            y={30}
             textAnchor='middle'
             style={{
               fill: color,
@@ -77,10 +77,10 @@ const ChartHeadingElements = ({
       </text>
       <text
         x={paddingL}
-        y={190}
+        y={175}
         style={{
           fill: '#f0f6fc',
-          fontSize: '3rem',
+          fontSize: '3.2rem',
           fontFamily: 'Plus Jakarta Sans',
           fontWeight: 700,
           textTransform: 'lowercase',
@@ -92,7 +92,7 @@ const ChartHeadingElements = ({
       <text
         id={totalId}
         x={chartWidth - paddingR}
-        y={188}
+        y={180}
         textAnchor='end'
         style={{
           fill: '#f0f6fc',

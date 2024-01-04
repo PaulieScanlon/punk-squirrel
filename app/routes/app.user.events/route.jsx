@@ -112,7 +112,7 @@ export const action = async ({ request }) => {
     );
 
     const defaultResponse = {
-      title: 'events',
+      title: 'public events',
       username: username,
       config: {
         chartWidth,
@@ -298,7 +298,7 @@ const Page = () => {
 
   useEffect(() => {
     if (data !== undefined && data.response.status === 200 && state === 'idle') {
-      const duration = 6;
+      const duration = 4;
       const dateStagger = duration / data.dates.diff;
 
       tl.play();
