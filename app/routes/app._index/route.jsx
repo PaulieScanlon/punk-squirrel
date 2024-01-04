@@ -52,7 +52,7 @@ const Page = () => {
 
   return (
     <>
-      <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user}>
+      <AppLayout handleNav={handleNav} isNavOpen={isNavOpen} supabase={supabase} user={user} isRoot={true}>
         <section className='flex flex-col gap-8'>
           {/* <h1 className='mb-0 text-2xl'>Dashboard</h1> */}
           <div className='p-8 bg-brand-surface-0'>

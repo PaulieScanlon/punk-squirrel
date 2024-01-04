@@ -4,7 +4,7 @@ import SignOutButton from '../components/sign-out-button';
 
 import { appLinks, accountLinks } from './app-links';
 
-const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
+const AppLayout = ({ handleNav, isNavOpen, supabase, user, children, isRoot = false }) => {
   return (
     <>
       <header className='fixed top-0 z-20 w-full border-b border-b-brand-border bg-brand-surface-0'>
@@ -133,9 +133,9 @@ const AppLayout = ({ handleNav, isNavOpen, supabase, user, children }) => {
           onClick={handleNav}
         />
         <div
-          className={`p-4 md:p-8 ${
-            isNavOpen ? 'ml-0 lg:ml-[16rem]' : 'lg:ml-[16rem]'
-          } lg:mr-60 h-[calc(100vh-73px)] transition-all duration-300`}
+          className={`p-4 md:p-8 ${isNavOpen ? 'ml-0 lg:ml-[16rem]' : 'lg:ml-[16rem]'} ${
+            isRoot ? '' : 'lg:mr-60'
+          } h-[calc(100vh-73px)] transition-all duration-300`}
         >
           {user ? <>{children}</> : null}
         </div>
