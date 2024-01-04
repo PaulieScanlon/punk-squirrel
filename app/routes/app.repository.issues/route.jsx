@@ -417,6 +417,10 @@ const Page = () => {
     revalidator.revalidate();
   };
 
+  const handleNav = () => {
+    setIsNavOpen(!isNavOpen);
+  };
+
   useEffect(() => {
     if (state === 'submitting' || state === 'loading') {
       setInterfaceState((prevState) => ({
@@ -425,10 +429,6 @@ const Page = () => {
       }));
     }
   }, [state]);
-
-  const handleNav = () => {
-    setIsNavOpen(!isNavOpen);
-  };
 
   const isDisabled =
     (state !== 'idle' && interfaceState.animation !== 'idle') ||

@@ -86,7 +86,7 @@ const ChartHeadingElements = ({
           textTransform: 'lowercase',
         }}
       >
-        {username ? username : `${owner} / ${repo}`}
+        {username ? `@${username}` : `${owner} / ${repo}`}
       </text>
 
       <text

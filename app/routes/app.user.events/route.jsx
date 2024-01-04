@@ -19,6 +19,9 @@ import MainRender from '../../components/main-render';
 import MainSvg from '../../charts/main-svg';
 import RatioFrame from '../../charts/ratio-frame';
 import ChartHeadingElements from '../../charts/chart-heading-elements';
+import DateTicks from '../../charts/date-ticks';
+import YAxis from '../../charts/y-axis';
+import HorizontalGuides from '../../charts/horizontal-guides';
 import LineChartPolyline from '../../charts/line-chart-polyline';
 import BarChartVertical from '../../charts/bar-chart-vertical';
 import Watermark from '../../charts/watermark';
@@ -35,12 +38,15 @@ import { createLineChartProperties } from '../../utils/create-line-chart-propert
 import { createBarChartProperties } from '../../utils/create-bar-chart-properties';
 import { createLineChartPoints } from '../../utils/create-line-chart-points';
 import { createLineChartFills } from '../../utils/create-line-chart-fills';
+import { createTicks } from '../../utils/create-ticks';
 import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
-import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
+// import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
 import { groupByString } from '../../utils/group-by-string';
 import { GitHubEventTypes } from '../../utils/github-events';
+import { createYAxisRange } from '../../utils/create-y-axis-range';
 import { createVideoFromFrames } from '../../utils/create-video-from-frames';
+import EventLegend from '../../charts/event-legend';
 
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
@@ -65,33 +71,18 @@ export const action = async ({ request }) => {
   const body = await request.formData();
   const username = body.get('username');
   const ratio = body.get('ratio');
+  const eventA = body.get('eventA');
+  const eventB = body.get('eventB');
 
   const chartWidth = ratio;
   const chartHeight = 1080;
-  const offsetY = 120;
+  const offsetX = 60;
+  const offsetY = 220;
   const _chartHeight = chartHeight - offsetY;
   const paddingL = 60;
   const paddingR = 60;
-  const paddingY = 340;
-
-  const gridCols = 3;
-  const gridRows = 2;
-  const gridColGap = -60;
-  const gridRowGap = 80;
-
-  const defaultResponse = {
-    title: 'events',
-    username: username,
-    config: {
-      chartWidth,
-      chartHeight,
-      _chartHeight,
-      offsetY,
-      paddingR,
-      paddingL,
-      paddingY,
-    },
-  };
+  const paddingY = 440;
+  const guides = [...Array(8).keys()];
 
   try {
     // https://docs.github.com/en/rest/activity/events?apiVersion=2022-11-28#list-events-for-the-authenticated-user
@@ -107,84 +98,69 @@ export const action = async ({ request }) => {
     const dateTo = new Date(response.data[0].created_at);
     const dateDiff = Math.ceil((dateTo - dateFrom) / (24 * 60 * 60 * 1000));
 
-    const responseGrouped = groupByString(response.data, 'type');
+    const groupedByType = groupByString(response.data, 'type');
 
-    const eventsGrouped = Object.keys(responseGrouped)
-      .map((object) => {
-        const { name, color } = GitHubEventTypes[object];
-        const dateRange = updateDateCount(responseGrouped[object], generateDateArray(dateFrom, dateDiff), 'created_at');
-        return {
-          name: name,
-          color: color,
-          total: findTotalValue(dateRange, 'count'),
-          dateRange: dateRange,
-        };
-      })
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 6);
-
-    const eventsFlat = Object.keys(eventsGrouped)
-      .map((_, index) => eventsGrouped[index].dateRange.flat())
-      .flat();
-
-    const maxValue = findMaxValue(eventsFlat, 'count');
-    const total = findTotalValue(eventsFlat, 'count');
-
-    const createGrid = (columns, rows, gridColGap, gridRowGap, width, height, offsetY, paddingR) => {
-      const grid = Array.from({ length: rows }, (_, row) =>
-        Array.from({ length: columns }, (_, col) => ({
-          x: col * (width + gridColGap),
-          y: row * (height + gridRowGap) + offsetY,
-          width: width - paddingR,
-        }))
-      ).flat();
-
-      return grid;
-    };
-
-    const grid = createGrid(
-      gridCols,
-      gridRows,
-      gridColGap,
-      gridRowGap,
-      chartWidth / gridCols + paddingR / 2,
-      _chartHeight / 2 / gridRows,
-      offsetY,
-      paddingR
+    const dateRangeA = updateDateCount(
+      groupedByType[eventA] ? groupedByType[eventA] : [],
+      generateDateArray(dateFrom, dateDiff),
+      'created_at'
+    );
+    const dateRangeB = updateDateCount(
+      groupedByType[eventB] ? groupedByType[eventB] : [],
+      generateDateArray(dateFrom, dateDiff),
+      'created_at'
     );
 
-    const propertiesGrouped = Object.keys(eventsGrouped).map((_, index) => {
-      const { name, color, total, dateRange } = eventsGrouped[index];
-      const lineProperties = createLineChartProperties(
-        dateRange,
-        chartWidth / gridCols,
-        _chartHeight / gridRows,
-        maxValue,
-        paddingL,
+    const defaultResponse = {
+      title: 'events',
+      username: username,
+      config: {
+        chartWidth,
+        chartHeight,
+        _chartHeight,
+        offsetX,
+        offsetY,
         paddingR,
-        paddingY
-      );
-
-      const barProperties = createBarChartProperties(
-        dateRange,
-        chartWidth / gridCols,
-        _chartHeight / gridRows,
-        maxValue,
         paddingL,
-        paddingR,
-        paddingY
-      );
+        paddingY,
+        guides,
+        bar: {
+          name: GitHubEventTypes[eventA].name,
+          color: GitHubEventTypes[eventA].color,
+          total: findTotalValue(dateRangeA, 'count'),
+        },
+        line: {
+          name: GitHubEventTypes[eventB].name,
+          color: GitHubEventTypes[eventB].color,
+          total: findTotalValue(dateRangeB, 'count'),
+        },
+      },
+    };
 
-      return {
-        name: name,
-        color: color,
-        total: total,
-        points: createLineChartPoints(lineProperties),
-        fills: createLineChartFills(lineProperties, _chartHeight / gridRows),
-        bars: barProperties,
-        grid: grid[index],
-      };
-    });
+    const dateRangeAll = [...dateRangeA, ...dateRangeB];
+
+    const maxValue = findMaxValue(dateRangeAll, 'count');
+    const total = findTotalValue(dateRangeAll, 'count');
+
+    const barProperties = createBarChartProperties(
+      dateRangeA,
+      chartWidth,
+      _chartHeight,
+      maxValue,
+      paddingL + offsetX,
+      paddingR,
+      paddingY
+    );
+
+    const lineProperties = createLineChartProperties(
+      dateRangeB,
+      chartWidth,
+      _chartHeight,
+      maxValue,
+      paddingL + offsetX,
+      paddingR,
+      paddingY
+    );
 
     return json({
       ...defaultResponse,
@@ -195,7 +171,11 @@ export const action = async ({ request }) => {
       },
       maxValue,
       total,
-      propertiesGrouped: propertiesGrouped,
+      ticks: createTicks(dateRangeA, chartWidth, _chartHeight, paddingR, paddingL + offsetX, offsetX),
+      yAxis: createYAxisRange(dateRangeAll, guides.length, 'count'),
+      points: createLineChartPoints(lineProperties),
+      fills: createLineChartFills(lineProperties, _chartHeight),
+      bars: barProperties,
       dates: {
         from: formatDate(dateFrom),
         to: formatDate(dateTo),
@@ -252,8 +232,37 @@ const Page = () => {
     output: '',
     frames: [],
     ratio: 1920,
-    type: 'line',
+    eventA: 'PushEvent',
+    eventB: 'PullRequestEvent',
   });
+
+  const selectAEvents = [
+    { name: 'Push', value: 'PushEvent' },
+    { name: 'Pull Request', value: 'PullRequestEvent' },
+    { name: 'Pull Request Review', value: 'PullRequestReviewEvent' },
+    { name: 'Pull Request Comment', value: 'PullRequestReviewCommentEvent' },
+    { name: 'Commit Comment', value: 'CommitCommentEvent' },
+    { name: 'Create', value: 'CreateEvent' },
+    { name: 'Delete', value: 'DeleteEvent' },
+    { name: 'Fork', value: 'ForkEvent' },
+    { name: 'Issue Comment', value: 'IssueCommentEvent' },
+    { name: 'Issues', value: 'IssuesEvent' },
+    { name: 'Watch', value: 'WatchEvent' },
+  ];
+
+  const selectBEvents = [
+    { name: 'Pull Request', value: 'PullRequestEvent' },
+    { name: 'Push', value: 'PushEvent' },
+    { name: 'Pull Request Review', value: 'PullRequestReviewEvent' },
+    { name: 'Pull Request Comment', value: 'PullRequestReviewCommentEvent' },
+    { name: 'Commit Comment', value: 'CommitCommentEvent' },
+    { name: 'Create', value: 'CreateEvent' },
+    { name: 'Delete', value: 'DeleteEvent' },
+    { name: 'Fork', value: 'ForkEvent' },
+    { name: 'Issue Comment', value: 'IssueCommentEvent' },
+    { name: 'Issues', value: 'IssuesEvent' },
+    { name: 'Watch', value: 'WatchEvent' },
+  ];
 
   const tl = useMemo(
     () =>
@@ -289,19 +298,25 @@ const Page = () => {
 
   useEffect(() => {
     if (data !== undefined && data.response.status === 200 && state === 'idle') {
-      const totalDuration = 6;
-      const maskDuration = 2;
-      const maskStagger = 1;
+      const duration = 6;
+      const dateStagger = duration / data.dates.diff;
 
       tl.play();
+      tl.to('#clip-mask-rect', { duration: duration, width: data.config.chartWidth, ease: 'linear' });
+      tl.to('#total', { duration: duration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' }, '<');
       tl.to(
-        '.clip-mask-rect',
-        { duration: maskDuration, width: data.config.chartWidth, stagger: maskStagger, ease: 'linear' },
+        '#barLegendTotal',
+        { duration: duration, textContent: data.config.bar.total, snap: { textContent: 1 }, ease: 'linear' },
         '<'
       );
       tl.to(
-        '#total',
-        { duration: totalDuration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' },
+        '#lineLegendTotal',
+        { duration: duration, textContent: data.config.line.total, snap: { textContent: 1 }, ease: 'linear' },
+        '<'
+      );
+      tl.to(
+        '.date',
+        { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: dateStagger, ease: 'linear' },
         '<'
       );
       // this adds a 3 second end frame
@@ -396,7 +411,7 @@ const Page = () => {
   };
 
   const handleRatio = (value) => {
-    revalidator.revalidate();
+    handleRevalidate();
     setInterfaceState((prevState) => ({
       ...prevState,
       animation: 'idle',
@@ -405,14 +420,32 @@ const Page = () => {
     }));
   };
 
-  const handleType = (value) => {
-    revalidator.revalidate();
+  const handleEventA = (value) => {
+    handleRevalidate();
     setInterfaceState((prevState) => ({
       ...prevState,
       animation: 'idle',
-      type: value,
+      eventA: value,
       download: null,
     }));
+  };
+
+  const handleEventB = (value) => {
+    handleRevalidate();
+    setInterfaceState((prevState) => ({
+      ...prevState,
+      animation: 'idle',
+      eventB: value,
+      download: null,
+    }));
+  };
+
+  const handleNav = () => {
+    setIsNavOpen(!isNavOpen);
+  };
+
+  const handleRevalidate = () => {
+    revalidator.revalidate();
   };
 
   useEffect(() => {
@@ -423,10 +456,6 @@ const Page = () => {
       }));
     }
   }, [state]);
-
-  const handleNav = () => {
-    setIsNavOpen(!isNavOpen);
-  };
 
   const isDisabled =
     (state !== 'idle' && interfaceState.animation !== 'idle') ||
@@ -443,6 +472,22 @@ const Page = () => {
             <MainSvg ref={chartSvgRef} ratio={interfaceState.ratio}>
               {data && data.response.status === 200 && state === 'idle' ? (
                 <>
+                  <YAxis
+                    values={data.yAxis}
+                    chartHeight={data.config._chartHeight}
+                    paddingY={data.config.paddingY}
+                    paddingL={data.config.paddingL}
+                  />
+
+                  <HorizontalGuides
+                    guides={data.config.guides}
+                    chartWidth={data.config.chartWidth}
+                    chartHeight={data.config._chartHeight}
+                    paddingL={data.config.paddingL + data.config.offsetX}
+                    paddingR={data.config.paddingR}
+                    paddingY={data.config.paddingY}
+                  />
+
                   <ChartHeadingElements
                     chartWidth={data.config.chartWidth}
                     paddingL={data.config.paddingL}
@@ -454,79 +499,42 @@ const Page = () => {
                     dates={data.dates}
                   />
 
-                  {data.propertiesGrouped.map((property, index) => {
-                    const {
-                      name,
-                      color,
-                      points,
-                      total,
-                      fills,
-                      bars,
-                      grid: { x, y, width },
-                    } = property;
+                  <EventLegend
+                    id='barLegendTotal'
+                    title={data.config.bar.name}
+                    color={data.config.bar.color}
+                    x={data.config.paddingL}
+                    y={320}
+                    anchor='start'
+                  />
 
-                    return (
-                      <g
-                        key={index}
-                        style={{
-                          transform: `translate(${x}px, ${y}px)`,
-                        }}
-                      >
-                        <text
-                          x={0 + data.config.paddingL}
-                          y={0 + data.config.paddingY}
-                          textAnchor='start'
-                          style={{
-                            fill: '#c9d1d9',
-                            fontSize: '1.8rem',
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontWeight: 600,
-                            textTransform: 'capitalize',
-                          }}
-                        >
-                          {name}
-                        </text>
+                  <BarChartVertical
+                    clipPathId='clip-mask'
+                    clipPathRectId='clip-mask-rect'
+                    chartHeight={data.config.chartHeight}
+                    bars={data.bars}
+                    color={data.config.bar.color}
+                  />
 
-                        <text
-                          id={`sub-title-${index}`}
-                          x={width}
-                          y={0 + data.config.paddingY}
-                          textAnchor='end'
-                          style={{
-                            fill: '#f0f6fc',
-                            fontSize: '2.6rem',
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontWeight: 600,
-                            textTransform: 'capitalize',
-                          }}
-                        >
-                          {total}
-                        </text>
+                  <EventLegend
+                    id='lineLegendTotal'
+                    title={data.config.line.name}
+                    color={data.config.line.color}
+                    x={data.config.chartWidth - data.config.paddingR}
+                    y={320}
+                    anchor='end'
+                  />
 
-                        {interfaceState.type === 'line' ? (
-                          <LineChartPolyline
-                            clipPathId={`clip-mask-${index}`}
-                            clipPathRectClass='clip-mask-rect'
-                            chartHeight={data.config.chartHeight}
-                            fills={fills}
-                            points={points}
-                            color={color}
-                            fillOpacity={1}
-                          />
-                        ) : (
-                          <BarChartVertical
-                            clipPathId={`clip-mask-${index}`}
-                            clipPathRectClass='clip-mask-rect'
-                            chartHeight={data.config.chartHeight}
-                            bars={bars}
-                            color={color}
-                            fillOpacity={1}
-                          />
-                        )}
-                      </g>
-                    );
-                  })}
+                  <LineChartPolyline
+                    clipPathId='clip-mask'
+                    clipPathRectId='clip-mask-rect'
+                    chartHeight={data.config.chartHeight}
+                    fills={data.fills}
+                    points={data.points}
+                    color={data.config.line.color}
+                  />
 
+                  <DateTicks ticks={data.ticks} />
                   <Watermark chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
                   <EndFrame chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
                 </>
@@ -579,15 +587,21 @@ const Page = () => {
                 </label>
 
                 <Select
-                  label='Type'
-                  name='type'
-                  placeholder='Select a type'
-                  onChange={handleType}
+                  label='Bar'
+                  name='eventA'
+                  placeholder='Select a event a'
+                  onChange={handleEventA}
                   disabled={isDisabled}
-                  items={[
-                    { name: 'Line', value: 'line' },
-                    { name: 'Bar', value: 'bar' },
-                  ]}
+                  items={selectAEvents}
+                />
+
+                <Select
+                  label='Line'
+                  name='eventB'
+                  placeholder='Select a event b'
+                  onChange={handleEventB}
+                  disabled={isDisabled}
+                  items={selectBEvents}
                 />
 
                 <Select
