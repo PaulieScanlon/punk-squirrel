@@ -80,7 +80,7 @@ const ChartHeadingElements = ({
         y={190}
         style={{
           fill: '#f0f6fc',
-          fontSize: '4.4rem',
+          fontSize: '3rem',
           fontFamily: 'Plus Jakarta Sans',
           fontWeight: 700,
           textTransform: 'lowercase',
