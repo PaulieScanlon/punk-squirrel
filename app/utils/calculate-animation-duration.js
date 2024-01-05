@@ -6,8 +6,12 @@ export const calculateAnimationDuration = (itemCount) => {
       duration = 12;
       break;
 
-    case 180:
+    case 275:
       duration = 10;
+      break;
+
+    case 180:
+      duration = 9;
       break;
 
     case 90:
