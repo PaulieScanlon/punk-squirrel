@@ -14,29 +14,30 @@ import Select from '../../components/select';
 import ErrorAnnounce from '../../components/error-announce';
 import PlayerControls from '../../components/player-controls';
 import SubmitButton from '../../components/submit-button';
+import MainRender from '../../components/main-render';
 
 import MainSvg from '../../charts/main-svg';
 import RatioFrame from '../../charts/ratio-frame';
 import ChartHeadingElements from '../../charts/chart-heading-elements';
+import XAxis from '../../charts/x-axis';
+import VerticalGuides from '../../charts/vertical-guides';
 
 import Watermark from '../../charts/watermark';
 import MainCanvas from '../../charts/main-canvas';
-import MainRender from '../../components/main-render';
+import EndFrame from '../../charts/end-frame';
 
 import { supabaseServer } from '../../supabase.server';
 
-import { generateDateArray } from '../../utils/generate-date-array';
-import { updateDateCount } from '../../utils/update-date-count';
 import { formatDate } from '../../utils/format-date';
-import { createLineChartProperties } from '../../utils/create-line-chart-properties';
-import { createLineChartPoints } from '../../utils/create-line-chart-points';
-import { createLineChartFills } from '../../utils/create-line-chart-fills';
-import { createTicks } from '../../utils/create-ticks';
+import { formatFilenameDate } from '../../utils/format-filename-date';
+import { createHorizontalBarChartProperties } from '../../utils/create-horizontal-bar-chart-properties';
 import { findMaxValue } from '../../utils/find-max-value';
 import { findTotalValue } from '../../utils/find-total-value';
 import { calculateAnimationDuration } from '../../utils/calculate-animation-duration';
-import { groupByObject } from '../../utils/group-by-object';
-import { createYAxisRange } from '../../utils/create-y-axis-range';
+import { groupByAuthor } from '../../utils/group-by-author';
+import { createXAxisRange } from '../../utils/create-x-axis-range';
+import { createVideoFromFrames } from '../../utils/create-video-from-frames';
+import { downloadConvertToBase64 } from '../../utils/download-convert-to-base64';
 
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
@@ -61,7 +62,6 @@ export const action = async ({ request }) => {
   const body = await request.formData();
   const owner = body.get('owner');
   const repo = body.get('repo');
-  const state = body.get('state');
   const ratio = body.get('ratio');
   const dateFrom = body.get('dateFrom');
   const dateTo = body.get('dateTo');
@@ -70,21 +70,22 @@ export const action = async ({ request }) => {
   const chartWidth = ratio;
   const chartHeight = 1080;
   const offsetX = 60;
-  const offsetY = 220;
+  const offsetY = 180;
   const _chartHeight = chartHeight - offsetY;
   const paddingL = 60;
   const paddingR = 60;
   const paddingY = 340;
-  const guides = [...Array(8).keys()];
+  const guides = [...Array(10).keys()];
+  const listLength = 10;
 
   const defaultResponse = {
-    title: 'contributors',
+    title: `top ${listLength} contributors`,
     owner,
     repo,
-    state,
     dates: {
       from: formatDate(dateFrom),
       to: formatDate(dateTo),
+      rawTo: formatFilenameDate(new Date()),
       diff: dateDiff,
     },
     config: {
@@ -97,7 +98,7 @@ export const action = async ({ request }) => {
       paddingL,
       paddingY,
       guides,
-      color: state === 'open' ? '#3fb950' : '#f85149',
+      color: '#7c72ff',
     },
   };
 
@@ -113,38 +114,56 @@ export const action = async ({ request }) => {
       },
     });
 
-    // const responseGrouped = groupByObject(response, 'author.login');
-    // .filter(
-    //   (data) => data.committer.email !== 'noreply@github.com'
-    // );
-    // const responseGrouped = groupByObject(response, 'commit.author.email');
+    const responseClean = response.filter((value) => value.author !== null || value.author !== undefined);
 
-    // console.log(responseGrouped);
+    const generateAuthorArray = (length) => {
+      const authorArray = Array.from({ length: length }, () => ({
+        name: '',
+        login: '',
+        url: '',
+        avatar: null,
+        avatar_base64: null,
+        count: 0,
+      }));
+      return authorArray;
+    };
 
-    // const dateRange = updateDateCount(response, generateDateArray(dateFrom, dateDiff), 'created_at');
+    const preGroupedByAuthor = groupByAuthor(responseClean, generateAuthorArray(listLength)).slice(0, listLength);
 
-    // const maxValue = findMaxValue(dateRange, 'count');
-    // const total = findTotalValue(dateRange, 'count');
-    // const properties = createLineChartProperties(
-    //   dateRange,
-    //   chartWidth,
-    //   _chartHeight,
-    //   maxValue,
-    //   paddingL + offsetX,
-    //   paddingR,
-    //   paddingY
-    // );
+    const groupedByAuthor = await Promise.all(
+      preGroupedByAuthor.map(async (author) => {
+        const { avatar } = author;
+
+        return {
+          ...author,
+          avatar_base64: avatar ? await downloadConvertToBase64(avatar) : null,
+        };
+      })
+    );
+
+    const maxValue = findMaxValue(groupedByAuthor, 'count');
+    const total = findTotalValue(groupedByAuthor, 'count');
+    const barProperties = createHorizontalBarChartProperties(
+      groupedByAuthor,
+      chartWidth,
+      _chartHeight,
+      maxValue,
+      paddingL + offsetX,
+      paddingR,
+      paddingY
+    );
 
     return json({
       ...defaultResponse,
       response: {
-        raw: response,
-        // responseGrouped: responseGrouped,
+        raw: responseClean,
         status: 200,
         message: !response.length ? 'No Data' : '',
       },
-      // maxValue,
-      // total,
+      maxValue,
+      total,
+      xAxis: createXAxisRange(groupedByAuthor, guides.length, 'count'),
+      bars: barProperties,
     });
   } catch (error) {
     return json({
@@ -190,6 +209,8 @@ const Page = () => {
     animation: 'idle',
     timeline: 0,
     rendering: false,
+    download: null,
+    output: '',
     frames: [],
     ratio: 1920,
   });
@@ -237,10 +258,25 @@ const Page = () => {
 
   useEffect(() => {
     if (data !== undefined && data.response.status === 200 && state === 'idle') {
-      const duration = 1;
+      const duration = calculateAnimationDuration(dates.diff);
+      const maskStagger = duration / dates.diff;
 
       tl.play();
       tl.to('#total', { duration: duration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' }, '<');
+      tl.to(
+        '.clip-mask-rect',
+        { duration: duration, transform: 'translateX(0px)', opacity: 1, stagger: maskStagger, ease: 'in-out' },
+        '<'
+      );
+      // this adds a 3 second end frame
+      tl.to('#watermark', { duration: 3, opacity: 1, ease: 'linear' });
+      tl.to('#endframe-bg', { duration: 0.1, opacity: 1, ease: 'linear' });
+      tl.to('#endframe-logo', { duration: 0.3, opacity: 1, ease: 'linear' });
+      tl.to('#endframe-title', { duration: 0.3, opacity: 1, ease: 'linear' });
+      tl.to('#endframe-url', { duration: 0.3, opacity: 1, ease: 'linear' });
+      // this adds a 3 second end frame
+      tl.to('#endframe-null', { duration: 3, opacity: 1, ease: 'linear' });
+
       setInterfaceState((prevState) => ({
         ...prevState,
         animation: 'active',
@@ -290,73 +326,89 @@ const Page = () => {
   };
 
   const handleRender = async () => {
+    const outputName = `${data.title.split(' ').join('-')}-${data.owner}-${data.repo}-${data.dates.rawTo}-${
+      interfaceState.ratio
+    }x1080`;
+
     setInterfaceState((prevState) => ({
       ...prevState,
       rendering: true,
+      output: outputName,
     }));
 
-    const canvas = chartCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    let canvasFrames = [];
+    const generateVideo = async () => {
+      try {
+        const videoSrc = await createVideoFromFrames(
+          data,
+          renderMessageRef.current,
+          chartCanvasRef.current,
+          interfaceState.frames,
+          data.config,
+          interfaceState.ratio,
+          outputName
+        );
 
-    let inc = 0;
-
-    const createRasterizedImage = () => {
-      const virtualImage = new Image();
-      virtualImage.src = interfaceState.frames[inc];
-
-      virtualImage.addEventListener('load', async () => {
-        renderMessageRef.current.innerHTML = !data
-          ? ''
-          : `Preparing frame: ${inc} of ${interfaceState.frames.length - 1}`;
-        ctx.clearRect(0, 0, data.config.chartWidth, data.config.chartHeight);
-        ctx.drawImage(virtualImage, 0, 0, data.config.chartWidth, data.config.chartHeight);
-        canvasFrames.push(canvas.toDataURL('image/jpeg'));
-        inc++;
-        if (inc < interfaceState.frames.length) {
-          createRasterizedImage();
-        } else {
-          // console.log('onComplete');
-          renderMessageRef.current.innerHTML = 'TODO: ffmpeg/WASM progress here';
-          // TODO don't set rendering to false until after ffmpeg/WASM has completed
-          setInterfaceState((prevState) => ({
-            ...prevState,
-            rendering: false,
-          }));
-        }
-      });
-
-      virtualImage.addEventListener('error', (error) => {
-        // console.error('virtualImage.error: ', error);
-      });
+        setInterfaceState((prevState) => ({
+          ...prevState,
+          rendering: false,
+          download: videoSrc,
+        }));
+      } catch (error) {
+        console.error('Error:', error);
+      }
     };
-    createRasterizedImage();
+
+    generateVideo();
   };
 
   const handleRatio = (value) => {
-    revalidator.revalidate();
+    handleRevalidate();
     setInterfaceState((prevState) => ({
       ...prevState,
       animation: 'idle',
       ratio: value,
+      download: null,
     }));
   };
 
   const handleDate = (value) => {
+    handleRevalidate();
     setDates((prevState) => ({
       ...prevState,
       to: new Date(value),
       from: new Date(new Date(value) - dates.diff * 24 * 60 * 60 * 1000),
     }));
+    setInterfaceState((prevState) => ({
+      ...prevState,
+      download: null,
+    }));
   };
 
   const handlePeriod = (value) => {
+    handleRevalidate();
     setDates((prevState) => ({
       ...prevState,
       from: new Date(new Date(dates.to) - value * 24 * 60 * 60 * 1000),
       diff: value,
     }));
+    setInterfaceState((prevState) => ({
+      ...prevState,
+      download: null,
+    }));
   };
+
+  const handleRevalidate = () => {
+    revalidator.revalidate();
+  };
+
+  useEffect(() => {
+    if (state === 'submitting' || state === 'loading') {
+      setInterfaceState((prevState) => ({
+        ...prevState,
+        download: null,
+      }));
+    }
+  }, [state]);
 
   const handleNav = () => {
     setIsNavOpen(!isNavOpen);
@@ -374,25 +426,33 @@ const Page = () => {
         <AppSection>
           {data ? (
             <>
-              <pre>{JSON.stringify(data.response.raw, null, 2)}</pre>
-              {/* <pre>{JSON.stringify(data.response.responseGrouped, null, 2)}</pre> */}
+              {/* <pre>{JSON.stringify(data, null, 2)}</pre> */}
+              {/* <pre>{JSON.stringify(data.response.raw, null, 2)}</pre> */}
+              {/* <pre>{JSON.stringify(data.response.groupedByAuthor, null, 2)}</pre> */}
             </>
           ) : null}
           <RatioFrame ratio={interfaceState.ratio}>
-            {/* {data && data.response.status === 200 && state === 'idle' ? (
-              <ul>
-                {data.response.raw.map((obj, index) => {
-                  const {
-                    author: { login },
-                  } = obj;
-
-                  return <li key={index}>{login}</li>;
-                })}
-              </ul>
-            ) : null} */}
             <MainSvg ref={chartSvgRef} ratio={interfaceState.ratio}>
               {data && data.response.status === 200 && state === 'idle' ? (
                 <>
+                  <XAxis
+                    values={data.xAxis}
+                    chartWidth={data.config.chartWidth}
+                    chartHeight={data.config._chartHeight}
+                    paddingY={data.config.paddingY}
+                    paddingL={data.config.paddingL + data.config.offsetX}
+                    paddingR={data.config.paddingR}
+                  />
+
+                  <VerticalGuides
+                    guides={data.config.guides}
+                    chartWidth={data.config.chartWidth}
+                    chartHeight={data.config._chartHeight}
+                    paddingL={data.config.paddingL + data.config.offsetX}
+                    paddingR={data.config.paddingR}
+                    paddingY={data.config.paddingY}
+                  />
+
                   <ChartHeadingElements
                     chartWidth={data.config.chartWidth}
                     paddingL={data.config.paddingL}
@@ -406,7 +466,94 @@ const Page = () => {
                     dates={data.dates}
                   />
 
+                  {data.bars.map((bar, index) => {
+                    const { count, login, avatar_base64, x, y, width, height, gap } = bar;
+
+                    return (
+                      <g key={index}>
+                        {count > 0 ? (
+                          <>
+                            <defs>
+                              <clipPath id={`barClip-${index}`}>
+                                <rect
+                                  className='clip-mask-rect'
+                                  x={x - 2}
+                                  y={y}
+                                  width={width + 4}
+                                  height={height}
+                                  style={{
+                                    transform: `translateX(-${width}px)`,
+                                  }}
+                                />
+                              </clipPath>
+                            </defs>
+                            <rect
+                              x={x}
+                              y={y + 5}
+                              width={width}
+                              height={height - 10}
+                              clipPath={`url(#barClip-${index})`}
+                              style={{
+                                fill: data.config.color,
+                                stroke: 'none',
+                              }}
+                            />
+                            <text x={data.config.chartWidth - data.config.paddingR - gap} y={y + 35} textAnchor='end'>
+                              <tspan
+                                style={{
+                                  fill: '#f0f6fc',
+                                  fontSize: '1.6rem',
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {login}
+                              </tspan>
+                              <tspan
+                                style={{
+                                  fill: '#f0f6fc',
+                                  fontSize: '1.8rem',
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontWeight: 900,
+                                }}
+                              >
+                                {' '}
+                                x{count}
+                              </tspan>
+                            </text>
+                          </>
+                        ) : null}
+
+                        {avatar_base64 ? (
+                          <image
+                            className='avatar'
+                            x={x - data.config.offsetX}
+                            y={y}
+                            width={height}
+                            height={height}
+                            href={avatar_base64}
+                            clipPath='inset(0% round 100%)'
+                          />
+                        ) : (
+                          <rect
+                            x={x - data.config.offsetX}
+                            y={y}
+                            width={height}
+                            height={height}
+                            clipPath='inset(0% round 100%)'
+                            style={{
+                              borderRadius: '100%',
+                              overflow: 'hidden',
+                              fill: '#161b22',
+                            }}
+                          />
+                        )}
+                      </g>
+                    );
+                  })}
+
                   <Watermark chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
+                  <EndFrame chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
                 </>
               ) : null}
             </MainSvg>
@@ -445,6 +592,8 @@ const Page = () => {
                 interfaceState.rendering ||
                 data.response.status !== 200
               }
+              download={interfaceState.download}
+              output={interfaceState.output}
             />
           </RatioFrame>
           <FormSidebar title='Contributors' dates={dates}>
@@ -468,17 +617,18 @@ const Page = () => {
                     { name: '60 Days', value: 60 },
                     { name: '90 Days', value: 90 },
                     { name: '180 Days', value: 180 },
+                    { name: '275 Days', value: 275 },
                     { name: '360 Days', value: 360 },
                   ]}
                 />
 
                 <label>
                   Owner
-                  <input type='text' defaultValue='vercel' name='owner' disabled={isDisabled} required />
+                  <input type='text' defaultValue='' name='owner' disabled={isDisabled} required />
                 </label>
                 <label>
                   Repository
-                  <input type='text' defaultValue='next.js' name='repo' disabled={isDisabled} required />
+                  <input type='text' defaultValue='' name='repo' disabled={isDisabled} required />
                 </label>
 
                 <Select

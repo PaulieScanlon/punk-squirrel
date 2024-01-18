@@ -35,7 +35,7 @@ import { updateDateCount } from '../../utils/update-date-count';
 import { formatDate } from '../../utils/format-date';
 import { formatFilenameDate } from '../../utils/format-filename-date';
 import { createLineChartProperties } from '../../utils/create-line-chart-properties';
-import { createBarChartProperties } from '../../utils/create-bar-chart-properties';
+import { createVerticalBarChartProperties } from '../../utils/create-vertical-bar-chart-properties';
 import { createLineChartPoints } from '../../utils/create-line-chart-points';
 import { createLineChartFills } from '../../utils/create-line-chart-fills';
 import { createTicks } from '../../utils/create-ticks';
@@ -138,7 +138,7 @@ export const action = async ({ request }) => {
       paddingY
     );
 
-    const barProperties = createBarChartProperties(
+    const barProperties = createVerticalBarChartProperties(
       dateRange,
       chartWidth,
       _chartHeight,

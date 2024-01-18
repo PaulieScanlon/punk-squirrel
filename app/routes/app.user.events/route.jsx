@@ -36,7 +36,7 @@ import { updateDateCount } from '../../utils/update-date-count';
 import { formatDate } from '../../utils/format-date';
 import { formatFilenameDate } from '../../utils/format-filename-date';
 import { createLineChartProperties } from '../../utils/create-line-chart-properties';
-import { createBarChartProperties } from '../../utils/create-bar-chart-properties';
+import { createVerticalBarChartProperties } from '../../utils/create-vertical-bar-chart-properties';
 import { createLineChartPoints } from '../../utils/create-line-chart-points';
 import { createLineChartFills } from '../../utils/create-line-chart-fills';
 import { createTicks } from '../../utils/create-ticks';
@@ -95,6 +95,15 @@ export const action = async ({ request }) => {
       },
     });
 
+    // https://docs.github.com/en/rest/activity/events?apiVersion=2022-11-28#list-public-events-for-a-user
+    // const response = await octokit.request('GET /users/{username}/events/public', {
+    //   username: username,
+    //   per_page: 100,
+    //   headers: {
+    //     'X-GitHub-Api-Version': '2022-11-28',
+    //   },
+    // });
+
     const dateFrom = new Date(response.data[response.data.length - 1].created_at);
     const dateTo = new Date(response.data[0].created_at);
     const dateDiff = Math.ceil((dateTo - dateFrom) / (24 * 60 * 60 * 1000));
@@ -143,7 +152,7 @@ export const action = async ({ request }) => {
     const maxValue = findMaxValue(dateRangeAll, 'count');
     const total = findTotalValue(dateRangeAll, 'count');
 
-    const barProperties = createBarChartProperties(
+    const barProperties = createVerticalBarChartProperties(
       dateRangeA,
       chartWidth,
       _chartHeight,

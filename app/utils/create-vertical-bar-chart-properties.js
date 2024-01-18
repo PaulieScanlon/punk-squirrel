@@ -1,4 +1,12 @@
-export const createBarChartProperties = (array, chartWidth, _chartHeight, maxValue, paddingL, paddingR, paddingY) => {
+export const createVerticalBarChartProperties = (
+  array,
+  chartWidth,
+  _chartHeight,
+  maxValue,
+  paddingL,
+  paddingR,
+  paddingY
+) => {
   const total = array.length;
   let gap = 10;
   let width = (chartWidth - paddingL - paddingR - (total - 1) * gap) / total;
@@ -11,8 +19,8 @@ export const createBarChartProperties = (array, chartWidth, _chartHeight, maxVal
     gap = (chartWidth - paddingL - paddingR - total * width) / (total - 1);
   }
 
-  const results = array.map((entry, index) => {
-    const { count } = entry;
+  const results = array.map((item, index) => {
+    const { count } = item;
     const _count = count < 1 ? 0.1 : count;
     const x = index * (width + gap) + paddingL;
     const y_ratio = _count / maxValue;
