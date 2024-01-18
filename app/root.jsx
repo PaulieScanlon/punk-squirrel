@@ -107,6 +107,22 @@ export default function App() {
 
         <link rel='icon' type='image/x-icon' href='/favicon.ico' />
 
+        {/* Google Analytics */}
+        {process.env.NODE_ENV === 'production' ? (
+          <>
+            <script async src='https://www.googletagmanager.com/gtag/js?id=G-RFEJ1X6V0S'></script>
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              
+              gtag('config', 'G-RFEJ1X6V0S');`,
+              }}
+            />
+          </>
+        ) : null}
+
         <Links />
       </head>
       <body className='prose max-w-none bg-brand-background'>

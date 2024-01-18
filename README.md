@@ -15,3 +15,17 @@
 ## Tweet Testimonials
 
 - [@matthew*abbott*](https://x.com/matthew_abbott_/status/1742806943209513349?s=20)
+
+## Google Analytics
+
+```
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-RFEJ1X6V0S"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-RFEJ1X6V0S');
+</script>
+```
