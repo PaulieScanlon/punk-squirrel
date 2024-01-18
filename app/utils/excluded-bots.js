@@ -4,5 +4,6 @@ export const excludedBots = [
   'renovate[bot]',
   'dependabot[bot]',
   'github-actions[bot]',
+  'mixie-bot[bot]',
   'astrobot-houston',
 ];
