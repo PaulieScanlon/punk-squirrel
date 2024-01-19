@@ -125,7 +125,7 @@ export default function App() {
 
         <Links />
       </head>
-      <body className='prose max-w-none bg-brand-background'>
+      <body className='prose max-w-none bg-brand-background min-w-[320px]'>
         <main className='min-h-screen'>
           <Outlet context={{ authRedirect, supabase, session, user }} />
           <ScrollRestoration />

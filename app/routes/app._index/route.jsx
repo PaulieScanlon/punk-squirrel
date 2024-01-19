@@ -56,7 +56,7 @@ const Page = () => {
         <section className='flex flex-col gap-8'>
           {/* <h1 className='mb-0 text-2xl'>Dashboard</h1> */}
           <div className='p-8 bg-brand-surface-0'>
-            <div className='flex items-center gap-6'>
+            <div className='flex flex-col sm:flex-row items-center gap-6'>
               <img
                 src={ghUser.avatar_url}
                 alt={ghUser.name}
@@ -67,14 +67,14 @@ const Page = () => {
                   <h2 className='m-0 text-xl'>
                     <a
                       href={ghUser.url}
-                      className='no-underline font-bold transition-colors duration-300 hover:text-brand-light-gray'
+                      className='no-underline block font-bold transition-colors duration-300 hover:text-brand-light-gray text-center sm:text-left'
                     >
                       {ghUser.name}
                     </a>
                   </h2>
-                  <small className='text-brand-mid-gray'>{`@${ghUser.login}`}</small>
+                  <small className='block text-brand-mid-gray text-center sm:text-left'>{`@${ghUser.login}`}</small>
                 </div>
-                <p className='mt-0 mb-2 text-brand-light-gray'>{ghUser.bio}</p>
+                <p className='mt-0 mb-2 text-brand-light-gray text-center sm:text-left'>{ghUser.bio}</p>
                 <div className='flex gap-4'>
                   <span className='flex gap-1'>
                     <strong>{ghUser.following}</strong>
