@@ -9,7 +9,7 @@ const prodPeriods = [
 const devPeriods = [
   { name: '180 Days', value: 180 },
   { name: '275 Days', value: 275 },
-  { name: '364 Days', value: 364 },
+  { name: '1 Year', value: 364 },
 ];
 
 export const selectPeriods =

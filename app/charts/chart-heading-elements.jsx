@@ -11,6 +11,8 @@ const ChartHeadingElements = ({
   title,
   dates,
 }) => {
+  const period = dates.diff > 275 ? '1 Year' : `${dates.diff} Days`;
+
   return (
     <>
       {state ? (
@@ -127,7 +129,7 @@ const ChartHeadingElements = ({
               fontWeight: 600,
               textTransform: 'capitalize',
             }}
-          >{`(${dates.diff} days)`}</tspan>
+          >{`(${period})`}</tspan>
         </text>
       ) : null}
     </>
