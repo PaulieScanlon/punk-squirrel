@@ -45,8 +45,6 @@ import { calculateAnimationDuration } from '../../utils/calculate-animation-dura
 import { createYAxisRange } from '../../utils/create-y-axis-range';
 import { createVideoFromFrames } from '../../utils/create-video-from-frames';
 
-import { selectPeriods } from '../../utils/select-periods';
-
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
 
@@ -70,11 +68,7 @@ export const action = async ({ request }) => {
   const body = await request.formData();
   const owner = body.get('owner');
   const repo = body.get('repo');
-  const state = body.get('state');
   const ratio = body.get('ratio');
-  const dateFrom = body.get('dateFrom');
-  const dateTo = body.get('dateTo');
-  const dateDiff = body.get('dateDiff');
 
   const chartWidth = ratio;
   const chartHeight = 1080;
@@ -87,16 +81,9 @@ export const action = async ({ request }) => {
   const guides = [...Array(8).keys()];
 
   const defaultResponse = {
-    title: 'issues',
+    title: 'stars',
     owner,
     repo,
-    state,
-    dates: {
-      from: formatDate(dateFrom),
-      to: formatDate(dateTo),
-      rawTo: formatFilenameDate(new Date()),
-      diff: dateDiff,
-    },
     config: {
       chartWidth,
       chartHeight,
@@ -107,63 +94,42 @@ export const action = async ({ request }) => {
       paddingL,
       paddingY,
       guides,
-      color: state === 'open' ? '#3fb950' : '#f85149',
+      color: '#ffd33d',
     },
   };
 
   try {
-    // https://docs.github.com/en/rest/issues/issues?apiVersion=2022-11-28#list-repository-issues
-    const response = await octokit.paginate('GET /repos/{owner}/{repo}/issues', {
+    // https://docs.github.com/en/rest/activity/starring?apiVersion=2022-11-28#list-stargazers
+    // const response = await octokit.paginate('GET /repos/{owner}/{repo}/stargazers', {
+    //   owner: owner,
+    //   repo: repo,
+    //   per_page: 100,
+    //   headers: {
+    //     accept: 'application/vnd.github+json',
+    //     'X-GitHub-Api-Version': '2022-11-28',
+    //   },
+    // });
+
+    // https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository
+    const response = await octokit.request('GET /repos/{owner}/{repo}', {
       owner: owner,
       repo: repo,
-      per_page: 100,
-      sort: 'created',
-      state: state,
-      created: 'created',
-      since: dateFrom,
+
       headers: {
         'X-GitHub-Api-Version': '2022-11-28',
       },
     });
 
-    const dateRange = updateDateCount(response, generateDateArray(dateFrom, dateDiff), 'created_at');
-
-    const maxValue = findMaxValue(dateRange, 'count');
-    const total = findTotalValue(dateRange, 'count');
-    const lineProperties = createLineChartProperties(
-      dateRange,
-      chartWidth,
-      _chartHeight,
-      maxValue,
-      paddingL + offsetX,
-      paddingR,
-      paddingY
-    );
-
-    const barProperties = createVerticalBarChartProperties(
-      dateRange,
-      chartWidth,
-      _chartHeight,
-      maxValue,
-      paddingL + offsetX,
-      paddingR,
-      paddingY
-    );
+    const total = response.data.stargazers_count;
 
     return json({
       ...defaultResponse,
       response: {
         raw: response,
         status: 200,
-        message: !response.length ? 'No Data' : '',
+        message: !response.data ? 'No Data' : '',
       },
-      maxValue,
       total,
-      ticks: createTicks(dateRange, chartWidth, _chartHeight, paddingR, paddingL + offsetX, offsetX),
-      yAxis: createYAxisRange(dateRange, guides.length, 'count'),
-      points: createLineChartPoints(lineProperties),
-      fills: createLineChartFills(lineProperties, _chartHeight),
-      bars: barProperties,
     });
   } catch (error) {
     return json({
@@ -213,16 +179,6 @@ const Page = () => {
     output: '',
     frames: [],
     ratio: 1920,
-    type: 'line',
-  });
-
-  const dateFrom = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000);
-  const dateTo = new Date();
-
-  const [dates, setDates] = useState({
-    from: dateFrom,
-    to: dateTo,
-    diff: Math.ceil((dateTo - dateFrom) / (24 * 60 * 60 * 1000)),
   });
 
   const tl = useMemo(
@@ -257,17 +213,29 @@ const Page = () => {
     timelineProgressRef.current.style.width = `${progress}%`;
   };
 
+  //   const intlNumberFormat = (number) => {
+  //     console.log(number);
+  //     return new Intl.NumberFormat().format(number);
+  //     // return new Intl.NumberFormat('de-DE', { style: 'unit', currency: 'EUR' }).format(number);
+  //   };
+
   useEffect(() => {
     if (data !== undefined && data.response.status === 200 && state === 'idle') {
-      const duration = calculateAnimationDuration(dates.diff);
-      const dateStagger = duration / dates.diff;
-
+      const duration = 6;
+      const formattedTotal = new Intl.NumberFormat('en-US').format(data.total);
       tl.play();
-      tl.to('#clip-mask-rect', { duration: duration, width: data.config.chartWidth, ease: 'linear' });
-      tl.to('#total', { duration: duration, textContent: data.total, snap: { textContent: 1 }, ease: 'linear' }, '<');
+      //   https://gsap.com/docs/v3/GSAP/UtilityMethods/snap()/
       tl.to(
-        '.date',
-        { duration: 0.3, transform: 'translateX(0px)', opacity: 1, stagger: dateStagger, ease: 'linear' },
+        '#total',
+        {
+          duration: duration,
+          //   textContent: data.total,
+          snap: { textContent: 1 },
+          ease: 'linear',
+          onUpdate: () => {
+            document.querySelector('#total').textContent = formattedTotal;
+          },
+        },
         '<'
       );
       // this adds a 3 second end frame
@@ -328,7 +296,7 @@ const Page = () => {
   };
 
   const handleRender = async () => {
-    const outputName = `${data.title}-${data.owner}-${data.repo}-${data.state}-${data.dates.rawTo}-${interfaceState.type}-${interfaceState.ratio}x1080`;
+    const outputName = `${data.title}-${data.owner}-${data.repo}-${interfaceState.ratio}x1080`;
 
     setInterfaceState((prevState) => ({
       ...prevState,
@@ -371,50 +339,6 @@ const Page = () => {
     }));
   };
 
-  const handleType = (value) => {
-    handleRevalidate();
-    setInterfaceState((prevState) => ({
-      ...prevState,
-      animation: 'idle',
-      type: value,
-      download: null,
-    }));
-  };
-
-  const handleDate = (value) => {
-    handleRevalidate();
-    setDates((prevState) => ({
-      ...prevState,
-      to: new Date(value),
-      from: new Date(new Date(value) - dates.diff * 24 * 60 * 60 * 1000),
-    }));
-    setInterfaceState((prevState) => ({
-      ...prevState,
-      download: null,
-    }));
-  };
-
-  const handlePeriod = (value) => {
-    handleRevalidate();
-    setDates((prevState) => ({
-      ...prevState,
-      from: new Date(new Date(dates.to) - value * 24 * 60 * 60 * 1000),
-      diff: value,
-    }));
-    setInterfaceState((prevState) => ({
-      ...prevState,
-      download: null,
-    }));
-  };
-
-  const handleState = () => {
-    handleRevalidate();
-    setInterfaceState((prevState) => ({
-      ...prevState,
-      download: null,
-    }));
-  };
-
   const handleRevalidate = () => {
     revalidator.revalidate();
   };
@@ -452,55 +376,17 @@ const Page = () => {
             <MainSvg ref={chartSvgRef} ratio={interfaceState.ratio}>
               {data && data.response.status === 200 && state === 'idle' ? (
                 <>
-                  <YAxis
-                    values={data.yAxis}
-                    chartHeight={data.config._chartHeight}
-                    paddingY={data.config.paddingY}
-                    paddingL={data.config.paddingL}
-                  />
-
-                  <HorizontalGuides
-                    guides={data.config.guides}
-                    chartWidth={data.config.chartWidth}
-                    chartHeight={data.config._chartHeight}
-                    paddingL={data.config.paddingL + data.config.offsetX}
-                    paddingR={data.config.paddingR}
-                    paddingY={data.config.paddingY}
-                  />
-
                   <ChartHeadingElements
                     chartWidth={data.config.chartWidth}
                     paddingL={data.config.paddingL}
                     paddingR={data.config.paddingR}
                     color={data.config.color}
-                    state={data.state}
                     totalId='total'
                     owner={data.owner}
                     repo={data.repo}
                     title={data.title}
-                    dates={data.dates}
                   />
 
-                  {interfaceState.type === 'line' ? (
-                    <LineChartPolyline
-                      clipPathId='clip-mask'
-                      clipPathRectId='clip-mask-rect'
-                      chartHeight={data.config.chartHeight}
-                      fills={data.fills}
-                      points={data.points}
-                      color={data.config.color}
-                    />
-                  ) : (
-                    <BarChartVertical
-                      clipPathId='clip-mask'
-                      clipPathRectId='clip-mask-rect'
-                      chartHeight={data.config.chartHeight}
-                      bars={data.bars}
-                      color={data.config.color}
-                    />
-                  )}
-
-                  <DateTicks ticks={data.ticks} />
                   <Watermark chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
                   <EndFrame chartWidth={data.config.chartWidth} chartHeight={data.config.chartHeight} />
                 </>
@@ -545,55 +431,37 @@ const Page = () => {
               output={interfaceState.output}
             />
           </RatioFrame>
-          <FormSidebar title='Issues' dates={dates}>
+          <FormSidebar title='Stars'>
             <Form method='post' className='flex flex-col gap-4' autoComplete='off'>
-              <input hidden name='dateFrom' readOnly value={dates.from} />
-              <input hidden name='dateTo' readOnly value={dates.to} />
-              <input hidden name='dateDiff' readOnly value={dates.diff} />
               <div className='flex flex-col gap-2'>
-                <DatePicker label='End Date' name='to' onChange={handleDate} disabled={isDisabled} />
+                {/* <DatePicker label='End Date' name='to' onChange={handleDate} disabled={isDisabled} /> */}
 
-                <Select
+                {/* <Select
                   label='Period'
                   name='from'
                   placeholder='Select a period'
                   onChange={handlePeriod}
                   disabled={isDisabled}
-                  items={selectPeriods}
-                />
-
-                <Select
-                  label='Type'
-                  name='type'
-                  placeholder='Select a type'
-                  onChange={handleType}
-                  disabled={isDisabled}
                   items={[
-                    { name: 'Line', value: 'line' },
-                    { name: 'Bar', value: 'bar' },
+                    { name: '7 Days', value: 7 },
+                    { name: '14 Days', value: 14 },
+                    { name: '30 Days', value: 30 },
+                    { name: '60 Days', value: 60 },
+                    { name: '90 Days', value: 90 },
+                    { name: '180 Days', value: 180 },
+                    { name: '275 Days', value: 275 },
+                    { name: '364 Days', value: 364 },
                   ]}
-                />
+                /> */}
 
                 <label>
                   Owner
-                  <input type='text' defaultValue='' name='owner' disabled={isDisabled} required />
+                  <input type='text' defaultValue='withAstro' name='owner' disabled={isDisabled} required />
                 </label>
                 <label>
                   Repository
-                  <input type='text' defaultValue='' name='repo' disabled={isDisabled} required />
+                  <input type='text' defaultValue='astro' name='repo' disabled={isDisabled} required />
                 </label>
-
-                <Select
-                  label='State'
-                  name='state'
-                  placeholder='Select a state'
-                  onChange={handleState}
-                  disabled={isDisabled}
-                  items={[
-                    { name: 'open', value: 'open' },
-                    { name: 'closed', value: 'closed' },
-                  ]}
-                />
 
                 <Select
                   label='Ratio'

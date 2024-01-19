@@ -2,7 +2,7 @@ export const calculateAnimationDuration = (itemCount) => {
   let duration = 0;
 
   switch (itemCount) {
-    case 360:
+    case 364:
       duration = 12;
       break;
 

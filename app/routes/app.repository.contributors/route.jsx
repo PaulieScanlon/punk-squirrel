@@ -39,6 +39,8 @@ import { createXAxisRange } from '../../utils/create-x-axis-range';
 import { createVideoFromFrames } from '../../utils/create-video-from-frames';
 import { downloadConvertToBase64 } from '../../utils/download-convert-to-base64';
 
+import { selectPeriods } from '../../utils/select-periods';
+
 export const action = async ({ request }) => {
   const { supabaseClient } = await supabaseServer(request);
 
@@ -610,16 +612,7 @@ const Page = () => {
                   placeholder='Select a period'
                   onChange={handlePeriod}
                   disabled={isDisabled}
-                  items={[
-                    { name: '7 Days', value: 7 },
-                    { name: '14 Days', value: 14 },
-                    { name: '30 Days', value: 30 },
-                    { name: '60 Days', value: 60 },
-                    { name: '90 Days', value: 90 },
-                    { name: '180 Days', value: 180 },
-                    { name: '275 Days', value: 275 },
-                    { name: '360 Days', value: 360 },
-                  ]}
+                  items={selectPeriods}
                 />
 
                 <label>

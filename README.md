@@ -1,5 +1,10 @@
 # Punk Squirrel
 
+## GitHub API Endpoints
+
+- [List Repos for User](https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-a-user)
+- [Repos starred by user](https://docs.github.com/en/rest/activity/starring?apiVersion=2022-11-28#list-repositories-starred-by-the-authenticated-user)
+
 ## FFmpeg: Issues
 
 - [Added type=module to @ffmpeg/util package.json](https://github.com/ffmpegwasm/ffmpeg.wasm/pull/627)

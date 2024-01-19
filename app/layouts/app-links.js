@@ -18,6 +18,10 @@ export const appLinks = [
         to: '/app/repository/contributors',
         text: 'Contributors',
       },
+      // {
+      //   to: '/app/repository/stars',
+      //   text: 'Stars',
+      // },
     ],
   },
   {

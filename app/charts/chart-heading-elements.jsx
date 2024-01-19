@@ -104,30 +104,32 @@ const ChartHeadingElements = ({
         0
       </text>
 
-      <text
-        x={chartWidth / 2}
-        y={260}
-        textAnchor='middle'
-        style={{
-          fill: '#c9d1d9',
-          fontSize: '1.6rem',
-          fontFamily: 'Plus Jakarta Sans',
-          fontWeight: 600,
-          textTransform: 'capitalize',
-        }}
-      >
-        {dates.from} - {dates.to}
-        <tspan
-          dx={16}
+      {dates ? (
+        <text
+          x={chartWidth / 2}
+          y={260}
+          textAnchor='middle'
           style={{
-            fill: '#7d8590',
-            fontSize: '1.8rem',
+            fill: '#c9d1d9',
+            fontSize: '1.6rem',
             fontFamily: 'Plus Jakarta Sans',
             fontWeight: 600,
             textTransform: 'capitalize',
           }}
-        >{`(${dates.diff} days)`}</tspan>
-      </text>
+        >
+          {dates.from} - {dates.to}
+          <tspan
+            dx={16}
+            style={{
+              fill: '#7d8590',
+              fontSize: '1.8rem',
+              fontFamily: 'Plus Jakarta Sans',
+              fontWeight: 600,
+              textTransform: 'capitalize',
+            }}
+          >{`(${dates.diff} days)`}</tspan>
+        </text>
+      ) : null}
     </>
   );
 };
