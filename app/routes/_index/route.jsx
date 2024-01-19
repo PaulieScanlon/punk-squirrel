@@ -12,6 +12,9 @@ const Page = () => {
     <DefaultLayout supabase={supabase} user={user} session={session}>
       <section className='grid lg:items-center gap-4 lg:gap-16 lg:grid-cols-2 pt-24 lg:p-20 h-screen'>
         <div className='flex flex-col items-center lg:items-start justify-center'>
+          <div className='flex items-center border-2 border-brand-pink rounded-full px-2 py-1 bg-brand-pink/20 mb-4'>
+            <strong className='text-brand-pink text-xs uppercase'>Beta</strong>
+          </div>
           <h1 className='m-0 text-5xl sm:text-7xl font-black text-center lg:text-left'>Punk Squirrel</h1>
           <p className='max-w-lg text-center lg:text-left'>GitHub Statistical Analysis - and more.</p>
           <div>
