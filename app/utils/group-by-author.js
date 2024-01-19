@@ -2,10 +2,10 @@ import { excludedBots } from './excluded-bots';
 
 export const groupByAuthor = (data, defaultArray) => {
   const groupedAuthors = data.reduce((items, item) => {
-    const authorLogin = item.author.login;
+    const authorLogin = item.author?.login;
     const authorName = item.commit.author.name;
-    const authorUrl = item.author.html_url;
-    const authorAvatar = item.author.avatar_url;
+    const authorUrl = item.author?.html_url;
+    const authorAvatar = item.author?.avatar_url;
 
     if (!excludedBots.includes(authorLogin)) {
       if (!items[authorLogin]) {
