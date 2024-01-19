@@ -10,7 +10,7 @@ const Page = () => {
 
   return (
     <DefaultLayout supabase={supabase} user={user} session={session}>
-      <section className='grid items-center gap-16 lg:grid-cols-2 pt-24 lg:p-20 h-screen'>
+      <section className='grid lg:items-center gap-4 lg:gap-16 lg:grid-cols-2 pt-24 lg:p-20 h-screen'>
         <div className='flex flex-col items-center lg:items-start justify-center'>
           <h1 className='m-0 text-5xl sm:text-7xl font-black text-center lg:text-left'>Punk Squirrel</h1>
           <p className='max-w-lg text-center lg:text-left'>GitHub Statistical Analysis - and more.</p>
